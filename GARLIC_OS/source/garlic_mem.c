@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include"elf.h"
+
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 
 #define INI_MEM 0x01002000		// dirección inicial de memoria para programas
@@ -21,7 +23,7 @@
 					para indiciar si dicha inicialización ha tenido éxito; */
 int _gm_initFS()
 {
-	return 0;
+	return nitroFSInit(NULL);
 }
 
 
