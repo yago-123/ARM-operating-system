@@ -42,6 +42,30 @@ int _gm_initFS()
 */
 intFunc _gm_cargarPrograma(char *keyName)
 {
+	FILE *fp; 
+	char *file_content; 
+	int file_size; 
+	
+	// Pas 1: Buscar fitxer keyname.elf 
+	fp = fopen(strcat(keyName, ".elf"), "rb"); 
+	if(fp != NULL) {
+		// Pas 2: Carregar fitxer dins de buffer dinamic
+		fseek(fp, 0, SEEK_END); 
+		file_size = ftell(fp); 
+		fseek(fp, 0, SEEK_SET); 
+		
+		file_content = (char*) malloc(file_size+1); 
+		fread(file_content, file_size, 1, fp); 
+		
+		
+		
+		free(file_content); 
+		fclose(fp); 
+	} else {
+		printf("Error carregant programa\n"); 
+	}
+	
+	
 
 	return ((intFunc) 0);
 }
