@@ -18,6 +18,7 @@
 #define INI_MEM 0x01002000		// dirección inicial de memoria para programas
 
 void mostraElfHeader(Elf32_Ehdr *elfHeader); 
+void mostraProgramHeader(Elf32_Phdr *programHeader, int num); 
 
 /* _gm_initFS: inicializa el sistema de ficheros, devolviendo un valor booleano
 					para indiciar si dicha inicialización ha tenido éxito; */
@@ -44,7 +45,7 @@ intFunc _gm_cargarPrograma(char *keyName)
 {
 	FILE *fp; 
 	char *file_content; 
-	int file_size; 
+	int file_size, i; 
 	
 	Elf32_Ehdr *elfHeader; 
 	Elf32_Phdr *programHeader; 
@@ -63,8 +64,13 @@ intFunc _gm_cargarPrograma(char *keyName)
 		
 		// Pas 3: Accedir capçalera ELF per obtenir les dades 
 		elfHeader = (Elf32_Ehdr*) file_content; 
-		mostraElfHeader(elfHeader); 
+		// mostraElfHeader(elfHeader); 
 		
+		// Pas 4: Accedir a la taula de segments 
+		for(i = 0; i < elfHeader->e_phnum; i++) {
+			programHeader = (Elf32_Phdr*)(file_content + elfHeader->e_phoff + (i*sizeof(Elf32_Phdr))); 
+			mostraProgramHeader(programHeader, i); 
+		}
 		
 		free(file_content); 
 		fclose(fp); 
@@ -81,4 +87,10 @@ void mostraElfHeader(Elf32_Ehdr *elfHeader) {
 	printf("Entry point: %x\n", elfHeader->e_entry); 
 	printf("Entry program header: %x\n", elfHeader->e_phoff); 
 	printf("Entry section header: %x\n", elfHeader->e_shoff); 
+}
+
+void mostraProgramHeader(Elf32_Phdr *programHeader, int num) {
+	printf("*** Program header number %d ***\n", num); 
+	printf("Segment file offset: %x\n", programHeader->p_offset); 
+	printf("Segment size in memory: %x\n", programHeader->p_memsz); 
 }
