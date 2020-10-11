@@ -17,7 +17,7 @@
 
 #define INI_MEM 0x01002000		// dirección inicial de memoria para programas
 
-
+void mostraElfHeader(Elf32_Ehdr *elfHeader); 
 
 /* _gm_initFS: inicializa el sistema de ficheros, devolviendo un valor booleano
 					para indiciar si dicha inicialización ha tenido éxito; */
@@ -46,6 +46,10 @@ intFunc _gm_cargarPrograma(char *keyName)
 	char *file_content; 
 	int file_size; 
 	
+	Elf32_Ehdr *elfHeader; 
+	Elf32_Phdr *programHeader; 
+	Elf32_Shdr *sectionHeader; 
+	
 	// Pas 1: Buscar fitxer keyname.elf 
 	fp = fopen(strcat(keyName, ".elf"), "rb"); 
 	if(fp != NULL) {
@@ -57,6 +61,9 @@ intFunc _gm_cargarPrograma(char *keyName)
 		file_content = (char*) malloc(file_size+1); 
 		fread(file_content, file_size, 1, fp); 
 		
+		// Pas 3: Accedir capçalera ELF per obtenir les dades 
+		elfHeader = (Elf32_Ehdr*) file_content; 
+		mostraElfHeader(elfHeader); 
 		
 		
 		free(file_content); 
@@ -65,8 +72,13 @@ intFunc _gm_cargarPrograma(char *keyName)
 		printf("Error carregant programa\n"); 
 	}
 	
-	
-
 	return ((intFunc) 0);
 }
 
+
+void mostraElfHeader(Elf32_Ehdr *elfHeader) {
+	printf("*** Elf header info ***\n"); 
+	printf("Entry point: %x\n", elfHeader->e_entry); 
+	printf("Entry program header: %x\n", elfHeader->e_phoff); 
+	printf("Entry section header: %x\n", elfHeader->e_shoff); 
+}
