@@ -19,6 +19,7 @@
 
 void mostraElfHeader(Elf32_Ehdr *elfHeader); 
 void mostraProgramHeader(Elf32_Phdr *programHeader, int num); 
+void mostraSectionHeader(Elf32_Shdr *sectionHeader, int num); 
 
 /* _gm_initFS: inicializa el sistema de ficheros, devolviendo un valor booleano
 					para indiciar si dicha inicialización ha tenido éxito; */
@@ -69,7 +70,24 @@ intFunc _gm_cargarPrograma(char *keyName)
 		// Pas 4: Accedir a la taula de segments 
 		for(i = 0; i < elfHeader->e_phnum; i++) {
 			programHeader = (Elf32_Phdr*)(file_content + elfHeader->e_phoff + (i*sizeof(Elf32_Phdr))); 
-			mostraProgramHeader(programHeader, i); 
+			// mostraProgramHeader(programHeader, i); 
+		}
+		
+		// Pas 5: Accedir taula de seccions i efectuar reubicacions (en C)
+		// _gm_reubicar(): garlic_itcm_mem.s
+		Elf32_Rel *relocator; 
+		for(i = 0; i < elfHeader->e_shnum; i++) {
+			sectionHeader = (Elf32_Shdr*)(file_content + elfHeader->e_shoff + (i*sizeof(Elf32_Shdr)));
+			if(sectionHeader->sh_type == SHT_REL) {
+				mostraSectionHeader(sectionHeader, i);
+				
+				for(j = 0; j < sectionHeader->sh_size/sizeof(Elf32_Rel); j++) {
+					relocator = (Elf32_Rel*)(file_content + sectionHeader->sh_offset + (j*sizeof(Elf32_Rel)));
+					if(relocator->r_info & 2) { // mascara bits: 00000010
+						printf("Rel offset: %x, rel info: %x\n", relocator->r_offset, relocator->r_info); 
+					}
+				}
+			}
 		}
 		
 		free(file_content); 
@@ -93,4 +111,11 @@ void mostraProgramHeader(Elf32_Phdr *programHeader, int num) {
 	printf("*** Program header number %d ***\n", num); 
 	printf("Segment file offset: %x\n", programHeader->p_offset); 
 	printf("Segment size in memory: %x\n", programHeader->p_memsz); 
+}
+
+void mostraSectionHeader(Elf32_Shdr *sectionHeader, int num) {
+	printf("*** Section header number %d ***\n", num); 
+	printf("Section address: %x\n", sectionHeader->sh_addr);
+	printf("Section offset: %x\n", sectionHeader->sh_offset);
+	printf("Number of relocators: %d\n", sectionHeader->sh_size/sizeof(Elf32_Rel));
 }
