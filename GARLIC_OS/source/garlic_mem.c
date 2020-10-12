@@ -46,7 +46,7 @@ intFunc _gm_cargarPrograma(char *keyName)
 {
 	FILE *fp; 
 	char *file_content; 
-	int file_size, i; 
+	int file_size, i, ret = 0; 
 	
 	Elf32_Ehdr *elfHeader; 
 	Elf32_Phdr *programHeader; 
@@ -71,15 +71,20 @@ intFunc _gm_cargarPrograma(char *keyName)
 		for(i = 0; i < elfHeader->e_phnum; i++) {
 			programHeader = (Elf32_Phdr*)(file_content + elfHeader->e_phoff + (i*sizeof(Elf32_Phdr))); 
 			// mostraProgramHeader(programHeader, i); 
+			if(programHeader->p_type == PT_LOAD) {
+				// Paso 4.1: Cargar el contenido de segmentos con tipo PT_LOAD en memoria 
+				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)INI_MEM, programHeader->p_filesz); 
+			}
 		}
 		
 		// Pas 5: Accedir taula de seccions i efectuar reubicacions (en C)
 		// _gm_reubicar(): garlic_itcm_mem.s
+		int j; 
 		Elf32_Rel *relocator; 
 		for(i = 0; i < elfHeader->e_shnum; i++) {
 			sectionHeader = (Elf32_Shdr*)(file_content + elfHeader->e_shoff + (i*sizeof(Elf32_Shdr)));
 			if(sectionHeader->sh_type == SHT_REL) {
-				mostraSectionHeader(sectionHeader, i);
+				// mostraSectionHeader(sectionHeader, i);
 				
 				for(j = 0; j < sectionHeader->sh_size/sizeof(Elf32_Rel); j++) {
 					relocator = (Elf32_Rel*)(file_content + sectionHeader->sh_offset + (j*sizeof(Elf32_Rel)));
@@ -90,13 +95,14 @@ intFunc _gm_cargarPrograma(char *keyName)
 			}
 		}
 		
+		ret = elfHeader->e_entry; 
 		free(file_content); 
 		fclose(fp); 
 	} else {
 		printf("Error carregant programa\n"); 
 	}
 	
-	return ((intFunc) 0);
+	return ((intFunc) ret);
 }
 
 
