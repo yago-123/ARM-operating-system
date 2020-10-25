@@ -74,6 +74,8 @@ intFunc _gm_cargarPrograma(char *keyName)
 			if(programHeader->p_type == PT_LOAD) {
 				// Paso 4.1: Cargar el contenido de segmentos con tipo PT_LOAD en memoria 
 				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)INI_MEM, programHeader->p_filesz); 
+				
+				// Utilizar programHeader->p_filesz o programHeader->p_memsz
 			}
 		}
 		
@@ -90,12 +92,16 @@ intFunc _gm_cargarPrograma(char *keyName)
 					relocator = (Elf32_Rel*)(file_content + sectionHeader->sh_offset + (j*sizeof(Elf32_Rel)));
 					if(relocator->r_info & 2) { // mascara bits: 00000010
 						printf("Rel offset: %x, rel info: %x\n", relocator->r_offset, relocator->r_info); 
+						relocator->r_offset = relocator->r_offset - programHeader->p_paddr + INI_MEM; 
+						printf("New direction: %x\n", relocator->r_offset); 
 					}
 				}
 			}
 		}
 		
-		ret = elfHeader->e_entry; 
+		ret = elfHeader->e_entry - programHeader->p_paddr;
+		ret = elfHeader->e_entry + INI_MEM; 
+		
 		free(file_content); 
 		fclose(fp); 
 	} else {
