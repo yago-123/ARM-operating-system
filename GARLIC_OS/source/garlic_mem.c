@@ -45,7 +45,7 @@ int _gm_initFS()
 intFunc _gm_cargarPrograma(char *keyName)
 {
 	FILE *fp; 
-	char *file_content; 
+	char *file_content, path[20]; 
 	int file_size, i, ret = 0; 
 	
 	Elf32_Ehdr *elfHeader; 
@@ -53,7 +53,9 @@ intFunc _gm_cargarPrograma(char *keyName)
 	Elf32_Shdr *sectionHeader; 
 	
 	// Pas 1: Buscar fitxer keyname.elf 
-	fp = fopen(strcat(keyName, ".elf"), "rb"); 
+	
+	sprintf(path, "/Programas/%s.elf", keyName); 
+	fp = fopen(path, "rb"); 
 	if(fp != NULL) {
 		// Pas 2: Carregar fitxer dins de buffer dinamic
 		fseek(fp, 0, SEEK_END); 
@@ -80,28 +82,9 @@ intFunc _gm_cargarPrograma(char *keyName)
 		}
 		
 		// Pas 5: Accedir taula de seccions i efectuar reubicacions (en C)
-		// _gm_reubicar(): garlic_itcm_mem.s
-		int j; 
-		Elf32_Rel *relocator; 
-		for(i = 0; i < elfHeader->e_shnum; i++) {
-			sectionHeader = (Elf32_Shdr*)(file_content + elfHeader->e_shoff + (i*sizeof(Elf32_Shdr)));
-			if(sectionHeader->sh_type == SHT_REL) {
-				// mostraSectionHeader(sectionHeader, i);
-				
-				for(j = 0; j < sectionHeader->sh_size/sizeof(Elf32_Rel); j++) {
-					relocator = (Elf32_Rel*)(file_content + sectionHeader->sh_offset + (j*sizeof(Elf32_Rel)));
-					if(relocator->r_info & 2) { // mascara bits: 00000010
-						printf("Rel offset: %x, rel info: %x\n", relocator->r_offset, relocator->r_info); 
-						relocator->r_offset = relocator->r_offset - programHeader->p_paddr + INI_MEM; 
-						printf("New direction: %x\n", relocator->r_offset); 
-					}
-				}
-			}
-		}
+		_gm_reubicar(file_content, programHeader->p_paddr, INI_MEM); 
 		
-		ret = elfHeader->e_entry - programHeader->p_paddr;
-		ret = elfHeader->e_entry + INI_MEM; 
-		
+		ret = elfHeader->e_entry - programHeader->p_paddr + INI_MEM; 
 		free(file_content); 
 		fclose(fp); 
 	} else {
