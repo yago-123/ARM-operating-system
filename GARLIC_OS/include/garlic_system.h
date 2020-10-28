@@ -5,7 +5,7 @@
 
 	Analista-programador: santiago.romani@urv.cat
 	Programador P: xxx.xxx@estudiants.urv.cat
-	Programador M: yyy.yyy@estudiants.urv.cat
+	Programador M: yagocarlos.fernandez@estudiants.urv.cat
 	Programador G: zzz.zzz@estudiants.urv.cat
 	Programador T: uuu.uuu@estudiants.urv.cat
 
@@ -39,6 +39,7 @@ extern char _gd_qReady[16];	// Cola de READY (procesos preparados) : vector
 							// los identificadores (0-15) de los zócalos de los
 							// procesos (máx. 15 procesos + sistema operativo)
 
+extern int _gm_mem_lliure;  // Variable global para indicar proxima direccion vacia 
 
 typedef struct				// Estructura del bloque de control de un proceso
 {							// (PCB: Process Control Block)

@@ -16,6 +16,7 @@
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 
 #define INI_MEM 0x01002000		// dirección inicial de memoria para programas
+#define LAST_MEM 0x01008000		// direccion final de memria para programas 
 
 void mostraElfHeader(Elf32_Ehdr *elfHeader); 
 void mostraProgramHeader(Elf32_Phdr *programHeader, int num); 
@@ -45,7 +46,7 @@ int _gm_initFS()
 intFunc _gm_cargarPrograma(char *keyName)
 {
 	FILE *fp; 
-	char *file_content, path[20]; 
+	char *file_content, path_elf[19]; 
 	int file_size, i, ret = 0; 
 	
 	Elf32_Ehdr *elfHeader; 
@@ -54,8 +55,8 @@ intFunc _gm_cargarPrograma(char *keyName)
 	
 	// Pas 1: Buscar fitxer keyname.elf 
 	
-	sprintf(path, "/Programas/%s.elf", keyName); 
-	fp = fopen(path, "rb"); 
+	sprintf(path_elf, "/Programas/%s.elf", keyName); 
+	fp = fopen(path_elf, "rb"); 
 	if(fp != NULL) {
 		// Pas 2: Carregar fitxer dins de buffer dinamic
 		fseek(fp, 0, SEEK_END); 
@@ -74,17 +75,21 @@ intFunc _gm_cargarPrograma(char *keyName)
 			programHeader = (Elf32_Phdr*)(file_content + elfHeader->e_phoff + (i*sizeof(Elf32_Phdr))); 
 			// mostraProgramHeader(programHeader, i); 
 			if(programHeader->p_type == PT_LOAD) {
-				// Paso 4.1: Cargar el contenido de segmentos con tipo PT_LOAD en memoria 
-				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)INI_MEM, programHeader->p_filesz); 
+				// Comprobem si tenim espai suficient a memoria 
+				if((_gm_mem_lliure + programHeader->p_filesz) >= LAST_MEM) {
+					_gm_mem_lliure = INI_MEM; 
+				}
 				
-				// Utilizar programHeader->p_filesz o programHeader->p_memsz
+				// Pas 4.1: Carregar el contingut de segments amb tipus PT_LOAD en memoria 
+				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)_gm_mem_lliure, programHeader->p_filesz);  
 			}
 		}
 		
 		// Pas 5: Accedir taula de seccions i efectuar reubicacions (en C)
-		_gm_reubicar(file_content, programHeader->p_paddr, INI_MEM); 
-		
-		ret = elfHeader->e_entry - programHeader->p_paddr + INI_MEM; 
+		_gm_reubicar(file_content, programHeader->p_paddr, _gm_mem_lliure); 
+		ret = elfHeader->e_entry - programHeader->p_paddr + _gm_mem_lliure; 
+		// Actualitzem variable global 
+		_gm_mem_lliure += programHeader->p_filesz; 
 		free(file_content); 
 		fclose(fp); 
 	} else {
