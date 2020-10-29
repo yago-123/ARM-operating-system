@@ -51,7 +51,6 @@ intFunc _gm_cargarPrograma(char *keyName)
 	
 	Elf32_Ehdr *elfHeader; 
 	Elf32_Phdr *programHeader; 
-	Elf32_Shdr *sectionHeader; 
 	
 	// Pas 1: Buscar fitxer keyname.elf 
 	
@@ -88,8 +87,14 @@ intFunc _gm_cargarPrograma(char *keyName)
 		// Pas 5: Accedir taula de seccions i efectuar reubicacions (en C)
 		_gm_reubicar(file_content, programHeader->p_paddr, _gm_mem_lliure); 
 		ret = elfHeader->e_entry - programHeader->p_paddr + _gm_mem_lliure; 
-		// Actualitzem variable global 
-		_gm_mem_lliure += programHeader->p_filesz; 
+		
+		// Actualitzem variable global, comprobem que sigui multiple de 4  
+		if(programHeader->p_filesz%4 != 0) {
+			_gm_mem_lliure += programHeader->p_filesz + (4 - programHeader->p_filesz%4);
+		} else {
+			_gm_mem_lliure += programHeader->p_filesz; 
+		}
+		
 		free(file_content); 
 		fclose(fp); 
 	} else {
