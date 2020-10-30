@@ -75,12 +75,12 @@ intFunc _gm_cargarPrograma(char *keyName)
 			// mostraProgramHeader(programHeader, i); 
 			if(programHeader->p_type == PT_LOAD) {
 				// Comprobem si tenim espai suficient a memoria 
-				if((_gm_mem_lliure + programHeader->p_filesz) >= LAST_MEM) {
+				if((_gm_mem_lliure + programHeader->p_memsz) >= LAST_MEM) {
 					_gm_mem_lliure = INI_MEM; 
 				}
 				
 				// Pas 4.1: Carregar el contingut de segments amb tipus PT_LOAD en memoria 
-				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)_gm_mem_lliure, programHeader->p_filesz);  
+				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)_gm_mem_lliure, programHeader->p_memsz);  
 			}
 		}
 		
@@ -89,10 +89,10 @@ intFunc _gm_cargarPrograma(char *keyName)
 		ret = elfHeader->e_entry - programHeader->p_paddr + _gm_mem_lliure; 
 		
 		// Actualitzem variable global, comprobem que sigui multiple de 4  
-		if(programHeader->p_filesz%4 != 0) {
-			_gm_mem_lliure += programHeader->p_filesz + (4 - programHeader->p_filesz%4);
+		if(programHeader->p_memsz%4 != 0) {
+			_gm_mem_lliure += programHeader->p_memsz + (4 - programHeader->p_memsz%4);
 		} else {
-			_gm_mem_lliure += programHeader->p_filesz; 
+			_gm_mem_lliure += programHeader->p_memsz; 
 		}
 		
 		free(file_content); 
