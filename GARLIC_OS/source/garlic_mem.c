@@ -52,12 +52,11 @@ intFunc _gm_cargarPrograma(char *keyName)
 	Elf32_Ehdr *elfHeader; 
 	Elf32_Phdr *programHeader; 
 	
-	// Pas 1: Buscar fitxer keyname.elf 
-	
+	// Buscar fitxer keyname.elf 
 	sprintf(path_elf, "/Programas/%s.elf", keyName); 
 	fp = fopen(path_elf, "rb"); 
 	if(fp != NULL) {
-		// Pas 2: Carregar fitxer dins de buffer dinamic
+		// Carregar fitxer dins de buffer dinamic
 		fseek(fp, 0, SEEK_END); 
 		file_size = ftell(fp); 
 		fseek(fp, 0, SEEK_SET); 
@@ -65,27 +64,26 @@ intFunc _gm_cargarPrograma(char *keyName)
 		file_content = (char*) malloc(file_size+1); 
 		fread(file_content, file_size, 1, fp); 
 		
-		// Pas 3: Accedir capçalera ELF per obtenir les dades 
+		// Accedim capçalera ELF per obtenir les dades 
 		elfHeader = (Elf32_Ehdr*) file_content; 
-		// mostraElfHeader(elfHeader); 
 		
-		// Pas 4: Accedir a la taula de segments 
+		// Accedim a la taula de segments 
 		for(i = 0; i < elfHeader->e_phnum; i++) {
 			programHeader = (Elf32_Phdr*)(file_content + elfHeader->e_phoff + (i*sizeof(Elf32_Phdr))); 
-			// mostraProgramHeader(programHeader, i); 
 			if(programHeader->p_type == PT_LOAD) {
 				// Comprobem si tenim espai suficient a memoria 
 				if((_gm_mem_lliure + programHeader->p_memsz) >= LAST_MEM) {
 					_gm_mem_lliure = INI_MEM; 
 				}
 				
-				// Pas 4.1: Carregar el contingut de segments amb tipus PT_LOAD en memoria 
+				// Carreguem el contingut de segments amb tipus PT_LOAD en memoria 
 				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)_gm_mem_lliure, programHeader->p_memsz);  
 			}
 		}
 		
-		// Pas 5: Accedir taula de seccions i efectuar reubicacions (en C)
-		_gm_reubicar(file_content, programHeader->p_paddr, _gm_mem_lliure); 
+		// Accedim taula de seccions i efectuem reubicacions
+		_gm_reubicar(file_content, programHeader->p_paddr, _gm_mem_lliure);
+		// Posicio de inici programa en mem.  
 		ret = elfHeader->e_entry - programHeader->p_paddr + _gm_mem_lliure; 
 		
 		// Actualitzem variable global, comprobem que sigui multiple de 4  
@@ -102,25 +100,4 @@ intFunc _gm_cargarPrograma(char *keyName)
 	}
 	
 	return ((intFunc) ret);
-}
-
-
-void mostraElfHeader(Elf32_Ehdr *elfHeader) {
-	printf("*** Elf header info ***\n"); 
-	printf("Entry point: %x\n", elfHeader->e_entry); 
-	printf("Entry program header: %x\n", elfHeader->e_phoff); 
-	printf("Entry section header: %x\n", elfHeader->e_shoff); 
-}
-
-void mostraProgramHeader(Elf32_Phdr *programHeader, int num) {
-	printf("*** Program header number %d ***\n", num); 
-	printf("Segment file offset: %x\n", programHeader->p_offset); 
-	printf("Segment size in memory: %x\n", programHeader->p_memsz); 
-}
-
-void mostraSectionHeader(Elf32_Shdr *sectionHeader, int num) {
-	printf("*** Section header number %d ***\n", num); 
-	printf("Section address: %x\n", sectionHeader->sh_addr);
-	printf("Section offset: %x\n", sectionHeader->sh_offset);
-	printf("Number of relocators: %d\n", sectionHeader->sh_size/sizeof(Elf32_Rel));
 }
