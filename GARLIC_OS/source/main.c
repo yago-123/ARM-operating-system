@@ -71,6 +71,20 @@ int main(int argc, char **argv) {
 	} else
 		printf("*** Programa \"PRNT\" NO cargado\n");
 
+	printf("*** Carga de programa XF_3.elf\n");
+	start = _gm_cargarPrograma("XF_3");
+	if (start)
+	{	printf("*** Direccion de arranque :\n\t\t%p\n", start);
+		printf("*** Pusle tecla \'START\' ::\n\n");
+		while(1) {
+			swiWaitForVBlank();
+			scanKeys();
+			if (keysDown() & KEY_START) break;
+		}
+		start(1);		// llamada al proceso HOLA con argumento 1
+	} else
+		printf("*** Programa \"XF_3\" NO cargado\n");
+
 	printf("*** Final fase 1_M\n");
 
 	while (1) {

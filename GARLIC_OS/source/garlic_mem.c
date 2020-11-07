@@ -82,7 +82,7 @@ intFunc _gm_cargarPrograma(char *keyName)
 		}
 		
 		// Accedim taula de seccions i efectuem reubicacions
-		_gm_reubicar(file_content, programHeader->p_paddr, _gm_mem_lliure);
+		_gm_reubicar(file_content, programHeader->p_paddr, (void*)_gm_mem_lliure);
 		// Posicio de inici programa en mem.  
 		ret = elfHeader->e_entry - programHeader->p_paddr + _gm_mem_lliure; 
 		
