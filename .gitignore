@@ -4,3 +4,4 @@
 *.nds
 *.pnps
 *.DS_Store
+!GARLIC_OS/nitrofiles/Programas/*.elf
