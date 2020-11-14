@@ -36,5 +36,8 @@ _gd_wbfs:	.space 4 * (4 + 32)
 	.global _gd_stacks			@; Vector de pilas de los procesos activos
 _gd_stacks:	.space 15 * 128 * 4
 
+	.global _gm_mem_lliure
+_gm_mem_lliure: .word 0x01002000
+
 .end
 
