@@ -11,8 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include"elf.h"
-
+#include <elf.h>			// cabecera estructuras elf 
 #include <garlic_system.h>	// definición de funciones y variables de sistema
 
 #define INI_MEM 0x01002000		// dirección inicial de memoria para programas
