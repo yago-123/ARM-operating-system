@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 	printf("*** Inicio fase 1_M\n");
 	
 	printf("*** Carga de programa HOLA.elf\n");
-	start = _gm_cargarPrograma("HOLA");
+	start = _gm_cargarPrograma(1, "HOLA");
 	if (start)
 	{	printf("*** Direccion de arranque :\n\t\t%p\n", start);
 		printf("*** Pusle tecla \'START\' ::\n\n");
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 		printf("*** Programa \"HOLA\" NO cargado\n");
 
 	printf("\n\n\n*** Carga de programa PRNT.elf\n");
-	start = _gm_cargarPrograma("PRNT");
+	start = _gm_cargarPrograma(2, "PRNT");
 	if (start)
 	{	printf("*** Direccion de arranque :\n\t\t%p\n", start);
 		printf("*** Pusle tecla \'START\' ::\n\n");
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 		printf("*** Programa \"PRNT\" NO cargado\n");
 
 	printf("*** Carga de programa XF_3.elf\n");
-	start = _gm_cargarPrograma("XF_3");
+	start = _gm_cargarPrograma(3, "XF_3");
 	if (start)
 	{	printf("*** Direccion de arranque :\n\t\t%p\n", start);
 		printf("*** Pusle tecla \'START\' ::\n\n");
