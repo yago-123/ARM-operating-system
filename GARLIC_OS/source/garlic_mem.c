@@ -1,42 +1,54 @@
 /*------------------------------------------------------------------------------
 
-	"garlic_mem.c" : fase 1 / programador M
+	"garlic_mem.c" : fase 2 / programador M
 
-	Funciones de carga de un fichero ejecutable en formato ELF, para GARLIC 1.0
+	Funciones de carga de un fichero ejecutable en formato ELF, para GARLIC 2.0
 
 ------------------------------------------------------------------------------*/
 #include <nds.h>
 #include <filesystem.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <dirent.h>			// para struct dirent, etc.
+#include <stdio.h>			// para fopen(), fread(), etc.
+#include <stdlib.h>			// para malloc(), etc.
+#include <string.h>			// para strcat(), memcpy(), etc.
 
-#include <elf.h>			// cabecera estructuras elf 
+#include <elf.h>
 #include <garlic_system.h>	// definición de funciones y variables de sistema
+
 
 #define INI_MEM 0x01002000		// dirección inicial de memoria para programas
 #define LAST_MEM 0x01008000		// direccion final de memria para programas 
 
-void mostraElfHeader(Elf32_Ehdr *elfHeader); 
-void mostraProgramHeader(Elf32_Phdr *programHeader, int num); 
-void mostraSectionHeader(Elf32_Shdr *sectionHeader, int num); 
 
 /* _gm_initFS: inicializa el sistema de ficheros, devolviendo un valor booleano
 					para indiciar si dicha inicialización ha tenido éxito; */
 int _gm_initFS()
 {
-	return nitroFSInit(NULL);
+	return nitroFSInit(NULL);	// inicializar sistema de ficheros NITRO
 }
 
 
+/* _gm_listaProgs: devuelve una lista con los nombres en clave de todos
+			los programas que se encuentran en el directorio "Programas".
+			 Se considera que un fichero es un programa si su nombre tiene
+			8 caracteres y termina con ".elf"; se devuelven sólo los
+			4 primeros caracteres de los programas (nombre en clave).
+			 El resultado es un vector de strings (paso por referencia) y
+			el número de programas detectados */
+int _gm_listaProgs(char* progs[])
+{
+	return 0;
+}
+
 
 /* _gm_cargarPrograma: busca un fichero de nombre "(keyName).elf" dentro del
-					directorio "/Programas/" del sistema de ficheros, y
-					carga los segmentos de programa a partir de una posición de
-					memoria libre, efectuando la reubicación de las referencias
-					a los símbolos del programa, según el desplazamiento del
-					código en la memoria destino;
+				directorio "/Programas/" del sistema de ficheros, y carga los
+				segmentos de programa a partir de una posición de memoria libre,
+				efectuando la reubicación de las referencias a los símbolos del
+				programa, según el desplazamiento del código y los datos en la
+				memoria destino;
 	Parámetros:
+		zocalo	->	índice del zócalo que indexará el proceso del programa
 		keyName ->	vector de 4 caracteres con el nombre en clave del programa
 	Resultado:
 		!= 0	->	dirección de inicio del programa (intFunc)
@@ -100,3 +112,4 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 	
 	return ((intFunc) ret);
 }
+
