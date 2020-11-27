@@ -72,7 +72,7 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 		file_size = ftell(fp); 
 		fseek(fp, 0, SEEK_SET); 
 		
-		file_content = (char*) malloc(file_size+1); 
+		file_content = (char*) malloc(file_size); 
 		fread(file_content, file_size, 1, fp); 
 		
 		// Accedim capçalera ELF per obtenir les dades 
@@ -88,7 +88,7 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 				}
 				
 				// Carreguem el contingut de segments amb tipus PT_LOAD en memoria 
-				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)_gm_mem_lliure, programHeader->p_memsz);  
+				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)_gm_mem_lliure, programHeader->p_filesz);  
 			}
 		}
 		
@@ -98,8 +98,8 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 		ret = elfHeader->e_entry - programHeader->p_paddr + _gm_mem_lliure; 
 		
 		// Actualitzem variable global, comprobem que sigui multiple de 4  
-		if(programHeader->p_memsz%4 != 0) {
-			_gm_mem_lliure += programHeader->p_memsz + (4 - programHeader->p_memsz%4);
+		if((programHeader->p_memsz % 4) != 0) {
+			_gm_mem_lliure += programHeader->p_memsz + (4 - (programHeader->p_memsz % 4));
 		} else {
 			_gm_mem_lliure += programHeader->p_memsz; 
 		}

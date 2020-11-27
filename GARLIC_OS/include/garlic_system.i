@@ -12,7 +12,6 @@ DESP_SH_OFFSET = 16
 DESP_R_INFO = 4
 
 @;=== tamaños ===
-SIZE_SHDR = 40
 SIZE_REL = 8
 
 @;=== tipos ===

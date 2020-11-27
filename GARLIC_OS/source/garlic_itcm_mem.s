@@ -35,7 +35,7 @@ _gm_reubicar:
 		
 		@; while r5 >= 0 {
 		.L_recorre_seccions: 
-		mov r7, #SIZE_SHDR
+		mov r7, r4
 		mla r6, r5, r7, r3			@; r6 = file_content + e_shoff + (r5*sizeof(Elf32_Shdr))
 		
 		ldr r7, [r6, #DESP_SH_TYPE]	@; r7 = sectionHeader->sh_type 
@@ -61,7 +61,6 @@ _gm_reubicar:
 		ldr r10, [r9]							@; r10 = relocator->r_offset 
 		sub r10, r1								@; r10 = relocator->r_offset - p_paddr 
 		add r10, r2								@; r10 = relocator->r_offset - p_paddr + INI_MEM 
-		str r10, [r9]
 		
 		ldr r11, [r10]							@; r11 = Mem[r10]
 		sub r11, r1								@; r11 = r11 - p_paddr
