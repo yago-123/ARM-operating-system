@@ -81,6 +81,18 @@ _gm_reubicar:
 	pop {r0-r12, pc}
 
 
+	.global _gm_liberarMem
+_gm_liberarMem: 
+	push {r0-r12, lr} 
+	
+	pop {r0-r12, pc}
+
+	.global _gm_rsiTIMER1 
+_gm_rsiTIMER1: 
+	push {r0-r12, lr} 
+	
+	pop {r0-r12, pc}
+	
 .end
 
 
