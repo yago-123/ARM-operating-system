@@ -198,7 +198,7 @@ typedef struct elf32_phdr{
 	Elf32_Addr	p_paddr;	/* Segment physical address */ 
 	Elf32_Word	p_filesz;	/* Segment size in file */ 
 	Elf32_Word	p_memsz;	/* Segment size in memory */ 
-	Elf32_Word	p_flags; 
+	Elf32_Word	p_flags; 	
 	Elf32_Word	p_align;	/* Segment alignment, file & memory */ 
 } Elf32_Phdr;
 

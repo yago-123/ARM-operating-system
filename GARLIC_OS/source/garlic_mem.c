@@ -19,6 +19,10 @@
 #define INI_MEM 0x01002000		// dirección inicial de memoria para programas
 #define LAST_MEM 0x01008000		// direccion final de memria para programas 
 
+typedef struct SegmentInfo{
+	Elf32_Addr	p_paddr;	    /* Segment physical address */ 
+	unsigned int posicioMem; 
+} Segment;
 
 /* _gm_initFS: inicializa el sistema de ficheros, devolviendo un valor booleano
 					para indiciar si dicha inicialización ha tenido éxito; */
@@ -43,7 +47,7 @@ int _gm_listaProgs(char *progs[]) {
 
     struct dirent *entrada; 	
 	// Obrim stream directori 
-	DIR *punterDirectori = opendir("Programas/"); 
+	DIR *punterDirectori = opendir("/Programas"); 
 	if(punterDirectori != NULL) {
 
 		// Recorregut de les entrades 
@@ -51,8 +55,6 @@ int _gm_listaProgs(char *progs[]) {
 		while(entrada != NULL) {
 			// Filtra longitud de programa i tipus  
 			if((strlen(entrada->d_name) == 8) && (entrada->d_type == DT_REG)) {
-				printf("%s %i\n", entrada->d_name, entrada->d_type);
-				
 				// Guarda nom executable  
 				progs[numProgs] = malloc(5); 
 				for(i = 0; i < 4; i++) {
@@ -69,7 +71,7 @@ int _gm_listaProgs(char *progs[]) {
 		// Tanca stream 
 		closedir(punterDirectori); 
 	} else {
-		printf("Error obrint directori /Programas"); 
+		printf("Error obrint directori /Programas\n"); 
 	}
 
 	return numProgs; 
@@ -92,11 +94,12 @@ int _gm_listaProgs(char *progs[]) {
 intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 {
 	FILE *fp; 
-	char *file_content, path_elf[19]; 
 	int file_size, i, ret = 0; 
+	char *file_content, path_elf[19]; 
 	
 	Elf32_Ehdr *elfHeader; 
 	Elf32_Phdr *programHeader; 
+	Segment codeSegment = {0, 0}, dataSegment = {0, 0}; 
 	
 	// Buscar fitxer keyname.elf 
 	sprintf(path_elf, "/Programas/%s.elf", keyName); 
@@ -122,22 +125,35 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 					_gm_mem_lliure = INI_MEM; 
 				}
 				
+				//Identifiquem el tipus de segment  
+				if(programHeader->p_flags == (PF_R | PF_X)) {
+					// Segment lectura i execucio 
+					codeSegment.p_paddr = programHeader->p_paddr; 
+					codeSegment.posicioMem = _gm_mem_lliure; 
+				} else if(programHeader->p_flags == (PF_R | PF_W)) {
+					// Segment lectura i escritura 
+					dataSegment.p_paddr = programHeader->p_paddr; 
+					dataSegment.posicioMem = _gm_mem_lliure; 
+				}
+				
 				// Carreguem el contingut de segments amb tipus PT_LOAD en memoria 
 				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)_gm_mem_lliure, programHeader->p_filesz);  
+				
+				// Actualitzem variable global, comprobem que sigui multiple de 4  
+				if((programHeader->p_memsz % 4) != 0) {
+					_gm_mem_lliure += programHeader->p_memsz + (4 - (programHeader->p_memsz % 4));
+				} else {
+					_gm_mem_lliure += programHeader->p_memsz; 
+				}
 			}
 		}
 		
-		// Accedim taula de seccions i efectuem reubicacions
-		_gm_reubicar(file_content, programHeader->p_paddr, (void*)_gm_mem_lliure, programHeader->p_paddr, (void*)_gm_mem_lliure);
+		// Reubiquem les posicions de memoria de tots els segments 
+		_gm_reubicar(file_content, codeSegment.p_paddr, (unsigned int*)codeSegment.posicioMem, 
+							dataSegment.p_paddr, (unsigned int*)dataSegment.posicioMem); 
+	
 		// Posicio de inici programa en mem.  
 		ret = elfHeader->e_entry - programHeader->p_paddr + _gm_mem_lliure; 
-		
-		// Actualitzem variable global, comprobem que sigui multiple de 4  
-		if((programHeader->p_memsz % 4) != 0) {
-			_gm_mem_lliure += programHeader->p_memsz + (4 - (programHeader->p_memsz % 4));
-		} else {
-			_gm_mem_lliure += programHeader->p_memsz; 
-		}
 		
 		free(file_content); 
 		fclose(fp); 
@@ -147,4 +163,3 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 	
 	return ((intFunc) ret);
 }
-
