@@ -35,9 +35,44 @@ int _gm_initFS()
 			4 primeros caracteres de los programas (nombre en clave).
 			 El resultado es un vector de strings (paso por referencia) y
 			el número de programas detectados */
-int _gm_listaProgs(char* progs[])
-{
-	return 0;
+// opendir(): https://man7.org/linux/man-pages/man3/opendir.3.html
+// readdir(): https://www.man7.org/linux/man-pages/man3/readdir.3.html
+
+int _gm_listaProgs(char *progs[]) {	
+	int i, numProgs = 0;
+
+    struct dirent *entrada; 	
+	// Obrim stream directori 
+	DIR *punterDirectori = opendir("Programas/"); 
+	if(punterDirectori != NULL) {
+
+		// Recorregut de les entrades 
+		entrada = readdir(punterDirectori); 
+		while(entrada != NULL) {
+			// Filtra longitud de programa i tipus  
+			if((strlen(entrada->d_name) == 8) && (entrada->d_type == DT_REG)) {
+				printf("%s %i\n", entrada->d_name, entrada->d_type);
+				
+				// Guarda nom executable  
+				progs[numProgs] = malloc(5); 
+				for(i = 0; i < 4; i++) {
+					progs[numProgs][i] = entrada->d_name[i];
+				}
+
+				progs[numProgs][4] = '\0'; 
+				numProgs++; 
+			}
+		    
+			entrada = readdir(punterDirectori); 	
+		}
+
+		// Tanca stream 
+		closedir(punterDirectori); 
+	} else {
+		printf("Error obrint directori /Programas"); 
+	}
+
+	return numProgs; 
 }
 
 
