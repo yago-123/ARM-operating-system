@@ -26,8 +26,10 @@
 	@; cambio de las direcciones de memoria que se tienen que ajustar
 _gm_reubicar:
 	push {r0-r12, lr}
-		ldr r3, [r0, #DESP_E_SHOFF]	@; r3 = e_shoff 
-		add r3, r3, r0 				@; r3 = e_shoff + file_content
+		@; Agafa valor de la pila a r4 
+	
+		ldr r12, [r0, #DESP_E_SHOFF]	@; r12 = e_shoff 
+		add r12, r12, r0 				@; r12 = e_shoff + file_content
 		
 		ldrh r4, [r0, #DESP_E_SHENTSIZE] @; r4 = e_shentsize 
 		ldrh r5, [r0, #DESP_E_SHNUM]	 @; r5 = e_shnum
@@ -35,8 +37,8 @@ _gm_reubicar:
 		
 		@; while r5 >= 0 {
 		.L_recorre_seccions: 
-		mov r7, r4
-		mla r6, r5, r7, r3			@; r6 = file_content + e_shoff + (r5*sizeof(Elf32_Shdr))
+		ldrh r7, [r0, #DESP_E_SHENTSIZE] @; r7 = e_shentsize 
+		mla r6, r5, r7, r12			@; r6 = file_content + e_shoff + (r5*sizeof(Elf32_Shdr))
 		
 		ldr r7, [r6, #DESP_SH_TYPE]	@; r7 = sectionHeader->sh_type 
 		cmp r7, #TYPE_SHT_REL				
