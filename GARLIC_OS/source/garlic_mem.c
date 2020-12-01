@@ -153,7 +153,7 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 							dataSegment.p_paddr, (unsigned int*)dataSegment.posicioMem); 
 	
 		// Posicio de inici programa en mem.  
-		ret = elfHeader->e_entry - programHeader->p_paddr + _gm_mem_lliure; 
+		ret = elfHeader->e_entry - codeSegment.p_paddr + codeSegment.posicioMem; 
 		
 		free(file_content); 
 		fclose(fp); 

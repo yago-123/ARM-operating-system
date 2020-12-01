@@ -65,9 +65,7 @@ _gm_reubicar:
 		add r10, r2								@; r10 = relocator->r_offset - p_paddr + INI_MEM 
 		
 		ldr r11, [r10]							@; r11 = Mem[r10]
-		
-		@; Comprobar en cas segment dades carregat abans que codi en gestio de memoria
-		
+			
 												@; if(r3 == 0 || Mem[r10] < r3) {
 		cmp r3, #0								@; 		.L_reubica_segment_codi
 		beq .L_reubica_segment_codi
