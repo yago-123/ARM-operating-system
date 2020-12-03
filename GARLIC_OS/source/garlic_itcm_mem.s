@@ -7,11 +7,20 @@
 
 .include "../include/garlic_system.i"
 
-.section .itcm,"ax",%progbits
+NUM_FRANJAS = 768
+INI_MEM_PROC = 0x01002000
 
+.section .dtcm,"wa",%progbits
+	.align 2
+	.global _gm_zocMem
+_gm_zocMem: .space NUM_FRANJAS @; vector de ocupación de franjas mem.
+
+quo: .space 4
+mod: .space 4
+
+.section .itcm,"ax",%progbits
 	.arm
 	.align 2
-
 
 	.global _gm_reubicar
 	@; rutina para interpretar los 'relocs' de un fichero ELF y ajustar las
@@ -103,6 +112,92 @@ _gm_liberarMem:
 	
 	pop {r0-r12, pc}
 
+
+
+	.global _gm_reservarMem
+	@; rutina para reservar franjas de memoria consecutivas que 
+	@; proporcionen espacio suficiente para un segmento 
+	@;Parámetros:
+	@; R0: numero de zocalo (int z)
+	@; R1: tamaño en bytes del segmento a cargar (int tam)
+	@; R2: tipo de segmento a cargar (unsigned char tipo_seg)
+	@;Resultado:
+	@; Devuelve direccion del espacio en caso de tener segmentos
+	@; consecutivos, o 0 en caso contrario 
+_gm_reservarMem: 
+	push {r1-r7, lr}
+		mov r6, r0		@; Guardem r0 i r1  
+		mov r7, r2 
+		
+		mov r0, r1 		@; Cridem funcio divmod 
+		mov r1, #32 
+		ldr r2, =quo 
+		ldr r3, =mod 
+		bl _ga_divmod
+		
+		ldr r0, [r2]   @; r0 = Num franja necesitada
+		mov r1, #0 	   @; r1 = Num franja disponibles 
+		mov r2, #0	   @; r2 = contador 
+		
+		ldr r3, =_gm_zocMem  @; r3 = direccio base vector _gm_zocMem 
+		
+		@; while ((contador < NUM_FRANGES) && (franjDisponibles < franjNecesitats))
+	.Lwhile: 
+		cmp r2, #NUM_FRANJAS
+		bge .LfiWhile 
+ 
+		cmp r1, r0
+		bge .LfiWhile 
+		
+		ldrb r4, [r3, r2]
+		cmp r4, #0 			@; if(_gm_zocMem[i] == 0) {
+		bne .LelseNoDisponible 
+		
+		cmp r1, #0 				@; if(franjDisponibles == 0) {
+		bne .LcontinuaAntigaDir 
+		
+		mov r5, r2					@; dir. inicial = contador
+								@; }
+	.LcontinuaAntigaDir: 
+		add r1, #1				@; franjDisponibles++
+		b .LcontinuaFranja
+		
+	.LelseNoDisponible:		@; } else franjDisponibles = 0;  
+		mov r1, #0				
+						
+	.LcontinuaFranja:		
+		add r2, #1			@; contador++	
+		b .Lwhile
+		@; }
+	.LfiWhile:
+	
+		@; if(franjDisponibles == franjNecesitats) {
+		cmp r0, r1 
+		bne .LelseSenseEspai
+		
+		mov r2, r5				@; contador = dir. inicial 
+		add r4, r2, r0 			@; r4 = franjNecesitats + dir.inicial 
+								@; for(i = dir. inicial; i < (franjNecesitats + dir.inicial); i++) {			
+	.LforReservaEspais:		
+		cmp r2, r4 			
+		bge .LfiForReservaEspais 
+		strb r6, [r3, r2]		@; 		_gm_zocMem[contador] = z; 
+		add r2, #1 
+		b .LforReservaEspais 
+ 
+	.LfiForReservaEspais:		@; }
+		mov r1, #32
+		ldr r6, =INI_MEM_PROC
+		mla r0, r5, r1, r6   
+								@; return _gm_zocMem[dir. inicial] 
+		b .Lretorna
+	.LelseSenseEspai:	
+		mov r0, #0 			@; else return 0; 
+		
+	.Lretorna:
+ 
+	pop {r1-r7, pc}
+	
 	.global _gm_rsiTIMER1 
 _gm_rsiTIMER1: 
 	push {r0-r12, lr} 
