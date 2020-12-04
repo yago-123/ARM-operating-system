@@ -108,9 +108,27 @@ _gm_reubicar:
 
 	.global _gm_liberarMem
 _gm_liberarMem: 
-	push {r0-r12, lr} 
+	push {r1-r12, lr} 
+		ldr r1, =_gm_zocMem
+		mov r2, #0
+		@; for(i = 0; i < len(_gm_zocMem); i++) {
+	.LforLiberarMem: 
+		cmp r2, #NUM_FRANJAS 
+		bge .LstopForLiberar 
+		
+		ldrb r3, [r1, r2] 
+		cmp r3, r0 				@; if (_gm_zocMem[i] == z) {
+		bne .LfiIfLiberarMem 
+		
+		mov r4, #0
+		strb r4, [r1, r2] 		@; 		_gm_zocMem[i] = 0; 
+		
+	.LfiIfLibrearMem: 			@; }
+		add r2, #1
+	.LstopForLiberarMem: 
+		@; }
 	
-	pop {r0-r12, pc}
+	pop {r1-r12, pc}
 
 
 
@@ -136,8 +154,16 @@ _gm_reservarMem:
 		bl _ga_divmod
 		
 		ldr r0, [r2]   @; r0 = Num franja necesitada
+		ldr r2, [r3]   @; r2 = Obtenim residu 
+		cmp r2, #0 
+		beq .Lresidu0  @; if(residu != 0) Num franja necesitada++; 
+					   @; Afegeix franja extra necesaria 
+		add r0, #1 
+		
+	.Lresidu0: 		   @; }
 		mov r1, #0 	   @; r1 = Num franja disponibles 
 		mov r2, #0	   @; r2 = contador 
+		
 		
 		ldr r3, =_gm_zocMem  @; r3 = direccio base vector _gm_zocMem 
 		
