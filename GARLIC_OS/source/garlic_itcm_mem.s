@@ -114,7 +114,7 @@ _gm_liberarMem:
 		@; for(i = 0; i < len(_gm_zocMem); i++) {
 	.LforLiberarMem: 
 		cmp r2, #NUM_FRANJAS 
-		bge .LstopForLiberar 
+		bge .LstopForLiberarMem
 		
 		ldrb r3, [r1, r2] 
 		cmp r3, r0 				@; if (_gm_zocMem[i] == z) {
@@ -123,7 +123,7 @@ _gm_liberarMem:
 		mov r4, #0
 		strb r4, [r1, r2] 		@; 		_gm_zocMem[i] = 0; 
 		
-	.LfiIfLibrearMem: 			@; }
+	.LfiIfLiberarMem: 			@; }
 		add r2, #1
 	.LstopForLiberarMem: 
 		@; }
