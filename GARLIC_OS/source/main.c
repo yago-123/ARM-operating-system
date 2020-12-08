@@ -1,243 +1,180 @@
 /*------------------------------------------------------------------------------
 
-	"main.c" : fase 2 / progM-Tests
+	"main.c" : fase 2 / progM
 
-	Versión test de GARLIC 2.0
+	Versión final de GARLIC 2.0
 	(carga de programas con 2 segmentos, listado de programas, gestión de
 	 franjas de memoria)
 
 ------------------------------------------------------------------------------*/
 #include <nds.h>
-#include <stdio.h>
-#include <garlic_system.h>	// definición de funciones y variables de sistema
 
-#define NUMERO_FRANJAS 768
+#include <garlic_system.h>	// definición de funciones y variables de sistema
 
 extern int * punixTime;		// puntero a zona de memoria con el tiempo real
 
+char indicadoresTeclas[8] = {'^', '>', 'v', '<', 'A', 'B', 'L', 'R'};
+unsigned short bitsTeclas[8] = {KEY_UP, KEY_RIGHT, KEY_DOWN, KEY_LEFT, KEY_A, KEY_B,
+									KEY_L, KEY_R};
+
+
 const short divFreq1 = -33513982/(1024*7);		// frecuencia de TIMER1 = 7 Hz
 
-/*** Juego pruebas _gm_reservarMem ***/ 
-typedef struct 
+
+
+/* Función para gestionar los sincronismos  */
+void gestionSincronismos()
 {
-	int posicionInicial; 
-	int longitud; 
-	int zocalo; 
-} franja; 
-
-typedef struct {
-	int zocalo; 				// Identificador utilizado 
-	int numBytes; 				// Numero bytes ocupa segmento 
-	int direccionRetorno; 		// Direccion de retorno esperada 
-	franja solucion; 			// Franja que se situara solucion _gm_reservaMem 
-	franja franjaAuxiliar;  	// Franjas auxiliares para ampliar tests
-	franja franjaAuxiliar2; 
-} test_struct_reservar; 
-
-test_struct_reservar test_reservarMem[] = 
-{
-	{1,    128, 0x01002000, {  0,   4, 1}, {0,   0, 0}, { 0,   0, 0}},	// Posiciona 4 segmentos exactos (128) en vector vacio (con espacio)
-	{1,    128, 		 0, {  0,   0, 1}, {0, 768, 2}, { 0,   0, 0}},	// Posiciona 768 segmentos auxiliares (sin espacio)  
-	{1,    128, 		 0, {  0,   0, 1}, {1, 767, 2}, { 0,   0, 0}}, 	// Posiciona 767 segmentos auxiliares (con espacio)
-	{1,     32, 0x01002000, {  0,   1, 1}, {1, 767, 2}, { 0,   0, 0}},	// Posiciona 767 segmentos auxiliares (con espacio) 
-	{1,     32, 0x01002020, {  1,   1, 1}, {0,   1, 2}, { 2, 766, 3}}, 	// Posiciona 1 segmento al principio y 766 despues de un hueco (con espacio)
-	{1,     32, 0x01007FE0, {767,   1, 1}, {0, 767, 2}, { 0,   0, 0}},  // Posiciona 767 segmentos al principio (con espacio)
-	{1,     25, 0x01002000, {  0,   1, 1}, {0,   0, 0}, { 0,   0, 0}},	// Posiciona numero impar bytes en vector vacio (con espacio) 
-	{1,    111, 0x01002000, {  0,   4, 1}, {0,   0, 0}, { 0,   0, 0}},	// Posiciona numero impar bytes en vector vacio (con espacio)
-	{1,     32,          0, {  0,   0, 1}, {0, 768, 1}, { 0,   0, 0}},	// Llena 768 segmentos auxiliares con zocalo solucion (sin espacio)
-	{1, 32*768, 0x01002000, {  0, 768, 1}, {0,   0, 0}, { 0,   0, 0}},	// Ocupa todos segmentos con reservarMem (con espacio) 
-	{1, 32*769,          0, {  0,   0, 1}, {0,   0, 0}, { 0,   0, 0}},	// Reserva mas segmentos (769) de los disponibles (sin espacio)
-	{3,    320, 0x01002020, {  1,  10, 3}, {0,   1, 4}, {25,   5, 5}}, 	// Diferentes zocalos (con espacio)
-	{4,    400, 0x01002180, { 12,  13,  4},{2,  10, 5}, {30,   6, 6}},  
-};
-
-typedef struct {
-	franja franjaBorrar; 
-	franja franjaAuxiliar; 
-	franja franjaAuxiliar2; 
-} test_struct_liberar;
-
-test_struct_liberar test_liberarMem[] = 
-{
-	{{  0,  1, 1}, { 0,  0, 0}, { 0,  0, 0}},  // Borra un solo zocalo 
-	{{  0, 10, 1}, {10, 20, 2}, { 0,  0, 0}},  // Borra zocalos primeras franjas  
-	{{ 10, 20, 1}, { 0, 10, 2}, {10, 20, 3}},  // Borra zocalos entre dos franjas 
-	{{767,  1, 1}, { 0,  0, 0}, { 0,  0, 0}},  // Borra zocalo ultima posicion 
-	{{  0,  0, 0}, { 0,  0, 0}, { 0,  0, 0}},  // Borra con vector vacio 
-	{{  0,  0, 0}, { 0, 10, 2}, {10, 30, 3}},  // Borra vector sin zocalo presente 
-}; 
-
-/* Pone a 0 todo el vector */ 
-void reestablecerVector(unsigned char vector[], int longitud) {
-	int i;  
-	for(i = 0; i < longitud; i++) {
-		vector[i] = (char)0; 
+	int i, mask;
+	
+	if (_gd_sincMain & 0xFFFE)		// si hay algun sincronismo pendiente
+	{
+		mask = 2;
+		for (i = 1; i <= 15; i++)
+		{
+			if (_gd_sincMain & mask)
+			{	// liberar la memoria del proceso terminado
+				_gm_liberarMem(i);
+				_gg_escribir("* %d: proceso terminado\n", i, 0, 0);
+				_gs_dibujarTabla();
+				_gd_sincMain &= ~mask;		// poner bit a cero
+			}
+			mask <<= 1;
+		}
 	}
 }
 
-/* Escribe conjunto de franjas en el vector global _gm_zocMem */ 
-void escribeFranjaAuxiliar(unsigned char vector[], int longitudVector, franja datos) {
-	int i; 
-	if((datos.posicionInicial + datos.longitud) <= longitudVector) {
-		for(i = datos.posicionInicial; i < (datos.posicionInicial + datos.longitud); i++) {
-			vector[i] = (char)datos.zocalo; 
-		}
-	} else {
-		printf("Error, franja fuera de rango!\n"); 
-	}
-}
 
-/* Compara dos vectores y devuelve 1 o 0 si son iguales o no */ 
-int assertVector(unsigned char vector[], unsigned char vector2[], int longitud) {
-	int i, ret = 1; 
-	for(i = 0; i < longitud; i++) {
-		if(vector[i] != vector2[i]) {
-			ret = 0; 
-			printf("%d: %d %d\n", i, vector[i], vector2[i]); 
-		}
-	}
-	
-	return ret; 
-}
+/* Función para escoger una opción con un botón (tecla) de la NDS */
+int leerTecla(int num_opciones)
+{
+	int i, j, k;
 
-int testLiberarMem() {
-	unsigned short num_ok = 0;		// number of right tests
-	unsigned short rb, rw;			// returned results
-	unsigned char success;			// boolean for assessing test success
-	unsigned char test_by_test;		// boolean for runing test by test
-	
-	printf("********************************");
-	printf("*                              *");
-	printf("*   Test of  _gm_liberarMem()  *");
-	printf("*                              *");
-	printf("********************************");
-	printf("Press START to run test by test,");
-	printf("press SELECT to run all tests.\n\n");
-	
-	int i, ret,  ok; 
-	unsigned char vectorSolucion[NUMERO_FRANJAS]; 
-	for(i = 0; i < (sizeof(test_liberarMem) / sizeof(test_struct_liberar)); i++) {
-		ok = 1; 
-		reestablecerVector(vectorSolucion, NUMERO_FRANJAS); 
-		reestablecerVector(_gm_zocMem, NUMERO_FRANJAS); 
-		
-		// Escribe vector solucion sin la franjaBorrar
-		escribeFranjaAuxiliar(vectorSolucion, NUMERO_FRANJAS, test_liberarMem[i].franjaAuxiliar); 
-		escribeFranjaAuxiliar(vectorSolucion, NUMERO_FRANJAS, test_liberarMem[i].franjaAuxiliar2); 
-		
-		// Escribe vectores auxiliares _gm_zocMem completos 
-		escribeFranjaAuxiliar(_gm_zocMem, NUMERO_FRANJAS, test_liberarMem[i].franjaBorrar); 
-		escribeFranjaAuxiliar(_gm_zocMem, NUMERO_FRANJAS, test_liberarMem[i].franjaAuxiliar); 
-		escribeFranjaAuxiliar(_gm_zocMem, NUMERO_FRANJAS, test_liberarMem[i].franjaAuxiliar2);
-		 
-		// Ejecuta _gm_liberarMem() 
-		_gm_liberarMem(test_liberarMem[i].franjaBorrar.zocalo);
-
-		printf("Case %d: ", i); 
-		// Comprueba vector 
-		if(!assertVector(_gm_zocMem, vectorSolucion, NUMERO_FRANJAS)) {
-			printf("error assert\n"); 
-			ok = 0; 
-		} else {
-			printf("OK\n"); 
-		}
-	}
-	
-	do								// wait for START or SELECT
-	{	swiWaitForVBlank();
+	i = -1;							// marca de no selección
+	do {
+		_gp_WaitForVBlank();
+		gestionSincronismos();
 		scanKeys();
-	} while (!(keysDown() & (KEY_START | KEY_SELECT)));
-	test_by_test = (keysDown() & KEY_START);
-
-	return 0; 
+		k = keysDown();				// leer botones
+		if (k != 0)
+			for (j = 0; (j < num_opciones) && (i == -1); j++)
+				if (k & bitsTeclas[j])
+					i = j;			// detección de una opción válida
+	} while (i == -1);
+	return i;
 }
 
-int testReservarMem() {
-	unsigned short num_ok = 0;		// number of right tests
-	unsigned short rb, rw;			// returned results
-	unsigned char success;			// boolean for assessing test success
-	unsigned char test_by_test;		// boolean for runing test by test
+
+/* Función para presentar una lista de opciones de tipo 'string' y escoger una */
+int escogerString(char *strings[], int num_opciones)
+{
+	int j;
 	
-	printf("********************************");
-	printf("*                              *");
-	printf("*  Test of  _gm_reservarMem()  *");
-	printf("*                              *");
-	printf("********************************");
-	printf("Press START to run test by test,");
-	printf("press SELECT to run all tests.\n\n");
-
-	int i, ret,  ok; 
-	unsigned char vectorSolucion[NUMERO_FRANJAS]; 
-	for(i = 0; i < (sizeof(test_reservarMem) / sizeof(test_struct_reservar)); i++) {
-		ok = 1; 
-		reestablecerVector(vectorSolucion, NUMERO_FRANJAS); 
-		reestablecerVector(_gm_zocMem, NUMERO_FRANJAS); 
-		
-		// Escribe vector solucion con los datos completos 
-		escribeFranjaAuxiliar(vectorSolucion, NUMERO_FRANJAS, test_reservarMem[i].franjaAuxiliar); 
-		escribeFranjaAuxiliar(vectorSolucion, NUMERO_FRANJAS, test_reservarMem[i].franjaAuxiliar2); 
-		escribeFranjaAuxiliar(vectorSolucion, NUMERO_FRANJAS, test_reservarMem[i].solucion); 
-		
-		// Escribe vectores auxiliares _gm_zocMem
-		escribeFranjaAuxiliar(_gm_zocMem, NUMERO_FRANJAS, test_reservarMem[i].franjaAuxiliar); 
-		escribeFranjaAuxiliar(_gm_zocMem, NUMERO_FRANJAS, test_reservarMem[i].franjaAuxiliar2);
-		 
-		// Ejecuta _gm_reservarMem() y comprueba retorno 
-		ret = _gm_reservarMem(test_reservarMem[i].zocalo, test_reservarMem[i].numBytes, 0);
-
-		printf("Case %d: ", i); 
-		// Comprueba retorno 
-		if(ret != test_reservarMem[i].direccionRetorno) {
-			printf("error retorno"); 
-			ok = 0;  
-		} 
-		
-		// Comprueba vector 
-		if(!assertVector(_gm_zocMem, vectorSolucion, NUMERO_FRANJAS)) {
-			printf("error assert"); 
-			ok = 0;  
-		}
-		
-		if(ok) {
-			printf("OK"); 
-		} 
-		
-		printf("\n"); 
+	for (j = 0; j < num_opciones; j++)
+	{								// mostrar opciones
+		_gg_escribir("%c: %s\n", indicadoresTeclas[j], (unsigned int) strings[j], 0);
 	}
-	
-	do								// wait for START or SELECT
-	{	swiWaitForVBlank();
-		scanKeys();
-	} while (!(keysDown() & (KEY_START | KEY_SELECT)));
-	test_by_test = (keysDown() & KEY_START);
-		
-	return 0; 
-} 
+	return leerTecla(num_opciones);
+}
+
+/* Función para presentar una lista de opciones de tipo 'número' y escoger una */
+int escogerNumero(const unsigned char numeros[], int num_opciones)
+{
+	int j;
+
+	for (j = 0; j < num_opciones; j++)
+	{								// mostrar opciones
+		_gg_escribir("%c: %d\n", indicadoresTeclas[j], numeros[j], 0);
+	}
+	return numeros[leerTecla(num_opciones)];
+}
+
 
 
 /* Inicializaciones generales del sistema Garlic */
 //------------------------------------------------------------------------------
 void inicializarSistema() {
 //------------------------------------------------------------------------------
-	
-	consoleDemoInit();		// inicializar console, sólo para esta simulación
-	
+	int v;
+
+	_gg_iniGrafA();			// inicializar procesadores gráficos
+	_gs_iniGrafB();
+	for (v = 0; v < 4; v++)	// para todas las ventanas
+		_gd_wbfs[v].pControl = 0;		// inicializar los buffers de ventana
+	_gs_dibujarTabla();
+
 	_gd_seed = *punixTime;	// inicializar semilla para números aleatorios con
 	_gd_seed <<= 16;		// el valor de tiempo real UNIX, desplazado 16 bits
-
+	
+	_gd_pcbs[0].keyName = 0x4C524147;	// "GARL"
+	
 	if (!_gm_initFS()) {
-		printf("ERROR: ¡no se puede inicializar el sistema de ficheros!");
+		_gg_escribir("ERROR: ¡no se puede inicializar el sistema de ficheros!", 0, 0, 0);
 		exit(0);
 	}
+
+	irqInitHandler(_gp_IntrMain);	// instalar rutina principal interrupciones
+	irqSet(IRQ_VBLANK, _gp_rsiVBL);	// instalar RSI de vertical Blank
+	irqEnable(IRQ_VBLANK);			// activar interrupciones de vertical Blank
+	
+	irqSet(IRQ_TIMER1, _gm_rsiTIMER1);
+	irqEnable(IRQ_TIMER1);				// instalar la RSI para el TIMER1
+	TIMER1_DATA = divFreq1; 
+	TIMER1_CR = 0xC3;  	// Timer Start | IRQ Enabled | Prescaler 3 (F/1024)
+	
+	REG_IME = IME_ENABLE;			// activar las interrupciones en general
 }
+
 
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //------------------------------------------------------------------------------
 	intFunc start;
+	char *progs[8];
+	unsigned char zocalosDisponibles[3];
+	int num_progs, ind_prog, zocalo;
+	int i, j;
+
 	inicializarSistema();
-	testReservarMem(); 
-	testLiberarMem(); 
+	
+	_gg_escribir("********************************", 0, 0, 0);
+	_gg_escribir("*                              *", 0, 0, 0);
+	_gg_escribir("* Sistema Operativo GARLIC 2.0 *", 0, 0, 0);
+	_gg_escribir("*                              *", 0, 0, 0);
+	_gg_escribir("********************************", 0, 0, 0);
+	_gg_escribir("*** Inicio fase 2_M\n", 0, 0, 0);
+
+	num_progs = _gm_listaProgs(progs);
+	if (num_progs == 0)
+		_gg_escribir("ERROR: |NO hay programas disponibles!\n", 0, 0, 0);
+	else
+	{	while (1)
+		{
+			_gp_WaitForVBlank();
+			gestionSincronismos();
+			if ((_gd_pcbs[1].PID == 0) || (_gd_pcbs[2].PID == 0)
+													|| (_gd_pcbs[3].PID == 0))
+			{
+				_gg_escribir("*** seleccionar programa :\n", 0, 0, 0);
+				ind_prog = escogerString(progs, num_progs);
+				j = 0;
+				for (i = 1; i <= 3; i++)	// detectar zócalos disponibles
+				{	if (_gd_pcbs[i].PID == 0)
+					{	zocalosDisponibles[j] = i;
+						j++;
+					}
+				}
+				_gg_escribir("\n*** seleccionar zocalo :\n", 0, 0, 0);
+				zocalo = escogerNumero(zocalosDisponibles, j);
+				
+				start = _gm_cargarPrograma(zocalo, progs[ind_prog]);
+				if (start)
+				{	_gp_crearProc(start, zocalo, progs[ind_prog], zocalo-1);
+					_gg_escribir("*** Programa cargado!\n\n\t", 0, 0, 0);
+					_gg_escribir("%d: %s.elf\n\n", zocalo, (unsigned int) progs[ind_prog], 0);
+				}
+			}
+		}
+	}
 	return 0;
 }
-
