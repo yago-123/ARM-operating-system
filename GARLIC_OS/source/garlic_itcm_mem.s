@@ -124,7 +124,9 @@ _gm_liberarMem:
 		strb r4, [r1, r2] 		@; 		_gm_zocMem[i] = 0; 
 		
 	.LfiIfLiberarMem: 			@; }
+		
 		add r2, #1
+		b .LforLiberarMem 
 	.LstopForLiberarMem: 
 		@; }
 	
