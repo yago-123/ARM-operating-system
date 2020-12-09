@@ -120,31 +120,33 @@ intFunc _gm_cargarPrograma(int zocalo, char *keyName)
 		for(i = 0; i < elfHeader->e_phnum; i++) {
 			programHeader = (Elf32_Phdr*)(file_content + elfHeader->e_phoff + (i*sizeof(Elf32_Phdr))); 
 			if(programHeader->p_type == PT_LOAD) {
-				// Comprobem si tenim espai suficient a memoria 
-				if((_gm_mem_lliure + programHeader->p_memsz) >= LAST_MEM) {
-					_gm_mem_lliure = INI_MEM; 
-				}
-				
 				//Identifiquem el tipus de segment  
 				if(programHeader->p_flags == (PF_R | PF_X)) {
 					// Segment lectura i execucio 
 					codeSegment.p_paddr = programHeader->p_paddr; 
-					codeSegment.posicioMem = _gm_mem_lliure; 
+					codeSegment.posicioMem = (unsigned int) _gm_reservarMem(zocalo, programHeader->p_memsz, 0);
+					
+					// Copiem segment a memoria 
+					if(codeSegment.posicioMem != 0) {
+						_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)codeSegment.posicioMem, programHeader->p_filesz);  
+					} else { 
+						// No hi ha reserva, nomes retornem error 
+						return 0; 
+					}
 				} else if(programHeader->p_flags == (PF_R | PF_W)) {
 					// Segment lectura i escritura 
 					dataSegment.p_paddr = programHeader->p_paddr; 
-					dataSegment.posicioMem = _gm_mem_lliure; 
-				}
-				
-				// Carreguem el contingut de segments amb tipus PT_LOAD en memoria 
-				_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)_gm_mem_lliure, programHeader->p_filesz);  
-				
-				// Actualitzem variable global, comprobem que sigui multiple de 4  
-				if((programHeader->p_memsz % 4) != 0) {
-					_gm_mem_lliure += programHeader->p_memsz + (4 - (programHeader->p_memsz % 4));
-				} else {
-					_gm_mem_lliure += programHeader->p_memsz; 
-				}
+					dataSegment.posicioMem = (unsigned int) _gm_reservarMem(zocalo, programHeader->p_memsz, 1);
+
+					// Copiem segment a memoria 
+					if(dataSegment.posicioMem != 0) {
+						_gs_copiaMem((void*)file_content + programHeader->p_offset, (void*)dataSegment.posicioMem, programHeader->p_filesz); 
+					} else {
+						// Hi ha reserva anterior, alliberem segment de codi i retornem 
+						_gm_liberarMem(zocalo); 
+						return 0; 
+					}
+				} 
 			}
 		}
 		
