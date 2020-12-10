@@ -226,6 +226,44 @@ _gm_reservarMem:
  
 	pop {r1-r7, pc}
 	
+	
+	.global _gm_pintarFranjas
+_gm_pintarFranjas: 
+	push {r0-r12, lr} 
+	
+		mov r4, #0x06200000
+		add r4, #0x4000
+		add r4, #0x8000
+		
+		ldr r5, =_gs_colZoc 
+		add r5, #2
+		ldrb r5, [r5] 
+		
+		mov r2, #0
+	.LforGrande:
+		mov r1, #0 
+	.LbuclePinta: 
+		lsl r7, r5, #8
+		orr r7, r5 
+		
+		strh r7, [r4, #16]
+		strh r7, [r4, #24]
+		strh r7, [r4, #32]
+		strh r7, [r4, #40]
+		
+		add r4, #2
+		add r1, #1 
+		cmp r1, #4
+		bne .LbuclePinta
+		
+		add r4, #56
+		add r2, #1 
+		cmp r2, #96
+		bne .LforGrande
+	
+	pop {r0-r12, pc}
+	
+	
 	.global _gm_rsiTIMER1 
 _gm_rsiTIMER1: 
 	push {r0-r12, lr} 

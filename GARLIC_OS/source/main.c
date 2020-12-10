@@ -143,7 +143,9 @@ int main(int argc, char **argv) {
 	_gg_escribir("*                              *", 0, 0, 0);
 	_gg_escribir("********************************", 0, 0, 0);
 	_gg_escribir("*** Inicio fase 2_M\n", 0, 0, 0);
-
+	
+	_gm_pintarFranjas(1, 2, 3, 0); 
+	
 	num_progs = _gm_listaProgs(progs);
 	if (num_progs == 0)
 		_gg_escribir("ERROR: |NO hay programas disponibles!\n", 0, 0, 0);
