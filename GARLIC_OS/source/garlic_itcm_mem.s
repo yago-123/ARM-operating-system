@@ -228,42 +228,135 @@ _gm_reservarMem:
 	
 	
 	.global _gm_pintarFranjas
+	@; rutina para reservar franjas de memoria reservadas
+	@;Parámetros:
+	@; R0: numero de zocalo (unsigned char zocalo)
+	@; R1: indice incial franja (unsigned short index_ini)
+	@; R2: numero de franjas a pintar (unsigned short num_franjas)
+	@; R3: tipo de segmento: 0 -> codigo, 1-> datos (unsigned char tipo_seg)
+	@;Resultado:
+	@; Devuelve direccion del espacio en caso de tener segmentos
+	@; consecutivos, o 0 en caso contrario 
 _gm_pintarFranjas: 
 	push {r0-r12, lr} 
-	
-		mov r4, #0x06200000
-		add r4, #0x4000
-		add r4, #0x8000
-		
-		ldr r5, =_gs_colZoc 
-		add r5, #2
+		ldr r5, =_gs_colZoc		@; Obtenim color 
+		add r5, r0
 		ldrb r5, [r5] 
+
+		mov r11, r2 			@; Salvem registres a escriure  
+		mov r12, r3 
+
+		@; Direccio = dir_base + (index_ini/8)*64 + index_ini % 8 
+		mov r0, r1 				@; Cridem funcio divmod
+		mov r1, #8 
+		ldr r2, =quo 
+		ldr r3, =mod 
+		bl _ga_divmod
+								
+		ldr r2, [r2]   			@; Obtenim divisor
+		ldr r3, [r3]   			@; Obtenim residu 
+		mov r4, #64				@; Mida franja 
 		
-		mov r2, #0
-	.LforGrande:
-		mov r1, #0 
-	.LbuclePinta: 
+		mla r0, r2, r4, r3 		@; (index_ini/8)*64 + index_ini % 8 
+
+								@; Obtenim direccio inicial (dir_base)
+		mov r4, #0x06200000		@; Base mem. video  
+		add r4, #0x4000			@; Base contingut baldoses 
+		add r4, #0x8000			@; Base baldoses gestio mem 
+		
+		add r0, r4 				@; Direccio completa 
+
+		mov r4, r3 				@; Guardem contador_linia dins baldosa(residu) 
+		
+		mov r2, r11				@; Restaura registres 
+		mov r3, r12 
+		
+	.LwhilePintaFranges: 	@; while(num_franjas > 0) {
+		cmp r2, #0
+		ble .LfiWhilePintaFranges 
+			
+		@; Crear color 
+		ldrh r6, [r0, #16]
+							@; 		if(direccio & 1) { 
+		and r7, r0, #1 
+		cmp r7, #1 
+		bne .LcolorEsquerra
+ 
+		and r6, #0x00ff  
 		lsl r7, r5, #8
-		orr r7, r5 
+		orr r1, r6, r7		@; 			r1 = Color escriure (mante bits baixos, esquerra)
 		
-		strh r7, [r4, #16]
-		strh r7, [r4, #24]
-		strh r7, [r4, #32]
-		strh r7, [r4, #40]
-		
-		add r4, #2
-		add r1, #1 
-		cmp r1, #4
-		bne .LbuclePinta
-		
-		add r4, #56
-		add r2, #1 
-		cmp r2, #96
-		bne .LforGrande
+		b .LpintaColorCreat
+	.LcolorEsquerra:		@; 		} else {
+		and r6, #0xff00
+		orr r1, r5, r6		@; 			r1 = Color escriure (mante bits alts, dreta)		
+							@; 		}
+	.LpintaColorCreat: 
 	
+		cmp r3, #0 			@; 		if(tipoSeg == 0) { // codi 
+		bne .LpintaPatroEscacs
+		
+		bl _gm_liniaSolida	@; 			Pinta color solid 
+		b .LcontinuaFiPinta
+		
+	.LpintaPatroEscacs:		@; 		} else {
+		bl _gm_liniaAjedrez	@; 			Pinta patro 
+							@; 		}
+	.LcontinuaFiPinta:
+	
+		
+		add r4, #1  			@; 	contador_linia dins baldosa++; 
+		add r0, #1 				@; 	direccio pintar++;
+			
+		cmp r4, #8 				@; 	if(contador_linia >= 8 {
+		blt .LcontinuaSenseAumentarBaldosa
+		mov r4, #0 				@; 		contador_linia = 0; 
+		add r0, #56				@; 		direccio += 56   (64 - 8 seguent baldosa)
+								@; 	}
+	.LcontinuaSenseAumentarBaldosa: 
+		sub r2, #1 				@; 	num_franjas--;
+		b .LwhilePintaFranges
+		
+	.LfiWhilePintaFranges:	@; }
+			
 	pop {r0-r12, pc}
 	
 	
+	.global _gm_liniaSolida
+	@; pinta las lineas verticales de las baldosas con todos los pixelex
+	@;Parámetros:
+	@; R0: dirección a pintar (unsigned int direccion_pintar)
+	@; R1: color (teniendo en cuenta que son dos) (unsigned short color)
+_gm_liniaSolida: 
+	push {r0-r12, lr}
+		strh r1, [r0, #16]
+		strh r1, [r0, #24] 
+		strh r1, [r0, #32]
+		strh r1, [r0, #40]
+	pop {r0-r12, pc} 
+	
+	.global _gm_liniaAjedrez
+	@; pinta las lineas verticales en patron ajedrezado
+	@;Parámetros:
+	@; R0: dirección a pintar (unsigned int direccion_pintar)
+	@; R1: color (teniendo en cuenta que son dos) (unsigned short color) 
+_gm_liniaAjedrez: 
+	push {r0-r12, lr}
+		and r2, r0, #1
+		cmp r2, #1 			@; if(direccio & 1) {
+		bne .LpatroInvers
+	
+		strh r1, [r0, #16]
+		strh r1, [r0, #32] 
+		b .LfiPatro 
+	.LpatroInvers:			@; } else {
+		strh r1, [r0, #24]
+		strh r1, [r0, #40]
+							@; }
+	.LfiPatro:
+	
+	pop {r0-r12, pc}
+
 	.global _gm_rsiTIMER1 
 _gm_rsiTIMER1: 
 	push {r0-r12, lr} 

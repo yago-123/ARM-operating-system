@@ -144,7 +144,10 @@ int main(int argc, char **argv) {
 	_gg_escribir("********************************", 0, 0, 0);
 	_gg_escribir("*** Inicio fase 2_M\n", 0, 0, 0);
 	
-	_gm_pintarFranjas(1, 2, 3, 0); 
+	_gm_pintarFranjas(2, 0, 20, 1);
+	_gm_pintarFranjas(2, 20, 10, 0);  
+	_gm_pintarFranjas(3, 30, 10, 1); 
+	_gm_pintarFranjas(3, 40, 728, 0);
 	
 	num_progs = _gm_listaProgs(progs);
 	if (num_progs == 0)
