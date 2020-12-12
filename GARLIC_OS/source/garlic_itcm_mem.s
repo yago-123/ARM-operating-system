@@ -107,32 +107,58 @@ _gm_reubicar:
 
 
 	.global _gm_liberarMem
+	
 _gm_liberarMem: 
-	push {r1-r12, lr} 
-		ldr r1, =_gm_zocMem
-		mov r2, #0
+	push {r0-r12, lr} 
+							@; R0: Numero zocalo 
+		mov r1, #0 			@; R1: Indice inicial 
+		mov r2, #0			@; R2: Longitud franjas 
+		mov r3, #0 			@; R3: Tipo franja 
+	
+		ldr r4, =_gm_zocMem @; R4: _gm_zocMem[]
+		mov r5, #0  		@; R5 = i
 		@; for(i = 0; i < len(_gm_zocMem); i++) {
 	.LforLiberarMem: 
-		cmp r2, #NUM_FRANJAS 
+		cmp r5, #NUM_FRANJAS 
 		bge .LstopForLiberarMem
 		
-		ldrb r3, [r1, r2] 
-		cmp r3, r0 				@; if (_gm_zocMem[i] == z) {
-		bne .LfiIfLiberarMem 
+		ldrb r6, [r4, r5]
+		cmp r6, r0 
+		bne .LelseLiberarMem
 		
-		mov r4, #0
-		strb r4, [r1, r2] 		@; 		_gm_zocMem[i] = 0; 
+		mov r7, #0				@; if(_gm_zocMem[i] == zocalo) { 
+		strb r7, [r4, r5]		@; 		_gm_zocMem[i] = 0;
+		add r2, #1 				@; 		longitud++; 
 		
-	.LfiIfLiberarMem: 			@; }
-		
-		add r2, #1
-		b .LforLiberarMem 
+		cmp r2, #1 				@; 		if(longitud == 1) {
+		bne .LcontinuaLiberarMem
+		mov r1, r5				@; 			inici = i; 
+								@; 		}
+		b .LcontinuaLiberarMem
+	.LelseLiberarMem: 			@; } else {
+		cmp r2, #0 
+		beq .LcontinuaLiberarMem
+								@; 		if(longitud != 0) {
+		mov r8, r0				@; 			// Salvem zocalo 
+		mov r0, #0				@; 			// Posem zocalo a 0 per pintar 
+		bl _gm_pintarFranjas	@; 			_gm_pintarFranjas(0, inici, longitud, 0);
+		mov r0, r8
+		mov r2, #0				@; 			longitud = 0; 
+								@; 		}
+	.LcontinuaLiberarMem: 		@; }
+		add r5, #1
+		b .LforLiberarMem
 	.LstopForLiberarMem: 
 		@; }
-	
-	pop {r1-r12, pc}
-
-
+			
+		cmp r2, #0 				@; if(longitud != 0) { 
+		beq .LfinalLiberarMem
+		mov r0, #0 
+		bl _gm_pintarFranjas 	@; 		_gm_pintarFranjas(0, inici, longitud, 0);  
+		
+	.LfinalLiberarMem: 
+					
+	pop {r0-r12, pc}
 
 	.global _gm_reservarMem
 	@; rutina para reservar franjas de memoria consecutivas que 
@@ -209,11 +235,19 @@ _gm_reservarMem:
 	.LforReservaEspais:		
 		cmp r2, r4 			
 		bge .LfiForReservaEspais 
-		strb r6, [r3, r2]		@; 		_gm_zocMem[contador] = z; 
+		strb r6, [r3, r2]		@; 		_gm_zocMem[contador] = zocalo; 
 		add r2, #1 
 		b .LforReservaEspais 
  
 	.LfiForReservaEspais:		@; }
+	
+		@; Pintamos franjas reservadas 
+		mov r2, r0 				@; R2: longitud_franjas
+		mov r0, r6 				@; R0: numero_zocalo 
+		mov r1, r5 				@; R1: indice_inicial  
+		mov r3, r7 				@; R3: tipo_franja 
+		bl _gm_pintarFranjas
+		
 		mov r1, #32
 		ldr r6, =INI_MEM_PROC
 		mla r0, r5, r1, r6   
@@ -305,16 +339,16 @@ _gm_pintarFranjas:
 	.LcontinuaFiPinta:
 	
 		
-		add r4, #1  			@; 	contador_linia dins baldosa++; 
-		add r0, #1 				@; 	direccio pintar++;
+		add r4, #1  		@; 	contador_linia dins baldosa++; 
+		add r0, #1 			@; 	direccio pintar++;
 			
-		cmp r4, #8 				@; 	if(contador_linia >= 8 {
+		cmp r4, #8 			@; 	if(contador_linia >= 8 {
 		blt .LcontinuaSenseAumentarBaldosa
-		mov r4, #0 				@; 		contador_linia = 0; 
-		add r0, #56				@; 		direccio += 56   (64 - 8 seguent baldosa)
-								@; 	}
+		mov r4, #0 			@; 		contador_linia = 0; 
+		add r0, #56			@; 		direccio += 56   (64 - 8 seguent baldosa)
+							@; 	}
 	.LcontinuaSenseAumentarBaldosa: 
-		sub r2, #1 				@; 	num_franjas--;
+		sub r2, #1 			@; 	num_franjas--;
 		b .LwhilePintaFranges
 		
 	.LfiWhilePintaFranges:	@; }
