@@ -9,6 +9,7 @@
 
 NUM_FRANJAS = 768
 INI_MEM_PROC = 0x01002000
+MAX_ZOCALOS = 4
 
 .section .dtcm,"wa",%progbits
 	.align 2
@@ -394,9 +395,71 @@ _gm_liniaAjedrez:
 	.global _gm_rsiTIMER1 
 _gm_rsiTIMER1: 
 	push {r0-r12, lr} 
+		@; f(y) = 0x06200000 + COL_ESPECIFICA + 256 + y*64 
+		mov r0, #0x06200000	@; Inicio mapa 
+		add r0, #256 		@; Fila 0 
 	
+		bl _gm_pintarEstado 
 	pop {r0-r12, pc}
 	
-.end
 
+	.global _gm_pintarEstado 
+_gm_pintarEstado: 
+	push {r0-r12, lr}
+		add r0, #52		@; Columna especifica   
+		
+		@; Muestra zocalo en ready  
+		ldr r1, =_gd_nReady 
+		ldrb r1, [r1]
+		
+		ldr r2, =_gd_qReady 
+		mov r3, #0 		@; Contador 
 
+	.LbucleRDY: 
+		cmp r1, r3 
+		beq .LfiBucleRDY
+		
+		ldrb r4, [r2, r3]
+		
+		mov r5, #64 
+		mul r4, r5, r4		@; Calculamos posicion zocalo*64 
+
+		mov r5, #57			@; Tabla ASCII
+		strh r5, [r0, r4]	@; Guardamos Y en fila zocalo 
+		
+		add r3, #1
+		b .LbucleRDY 
+ 
+	.LfiBucleRDY: 
+		
+		@; Muestra zocalo en block   
+		ldr r1, =_gd_nDelay 
+		ldrb r1, [r1]
+		
+		ldr r2, =_gd_qDelay 
+		mov r3, #0 		@; Contador 
+
+	.LbucleBLK: 
+		cmp r1, r3 
+		beq .LfiBucleBLK
+		
+		mov r4, #4 
+		mul r4, r3, r4	
+		ldr r4, [r2, r4]	@; _gd_qDelay[zocalo]
+								
+		and r4, #0xFF000000	@; Filtramos  8 bits altos (zocalo)
+		lsr r4, #24	
+		
+		mov r5, #64 
+		mul r4, r5, r4		@; Calculamos posicion zocalo*64 
+
+		mov r5, #34			@; Valor ASCII baldosa 
+		strh r5, [r0, r4]	@; Guardamos B en fila zocalo 
+		
+		add r3, #1
+		b .LbucleBLK 
+	.LfiBucleBLK: 
+	
+	pop {r0-r12, pc} 
+	
+.end 
