@@ -395,71 +395,127 @@ _gm_liniaAjedrez:
 	.global _gm_rsiTIMER1 
 _gm_rsiTIMER1: 
 	push {r0-r12, lr} 
-		@; f(y) = 0x06200000 + COL_ESPECIFICA + 256 + y*64 
+		@; f(y) = 0x06200000 + COL_ESPECIFICA + 256 + y*64
+		@; 	*COL_ESPECIFICA_LETRAS = 52 
+		@; 	*COL_ESPECIFICA_PILAS = 46
+		
 		mov r0, #0x06200000	@; Inicio mapa 
 		add r0, #256 		@; Fila 0 
 	
-		bl _gm_pintarEstado 
-	pop {r0-r12, pc}
-	
-
-	.global _gm_pintarEstado 
-_gm_pintarEstado: 
-	push {r0-r12, lr}
-		add r0, #52		@; Columna especifica   
+		add r0, #52		@; Columna especifica letras    
 		
 		@; Muestra zocalo en ready  
-		ldr r1, =_gd_nReady 
-		ldrb r1, [r1]
+		ldr r2, =_gd_nReady 
+		ldrb r2, [r2]
 		
-		ldr r2, =_gd_qReady 
-		mov r3, #0 		@; Contador 
+		ldr r3, =_gd_qReady 
+		mov r1, #0 		@; Contador 
 
 	.LbucleRDY: 
-		cmp r1, r3 
+		cmp r2, r1 
 		beq .LfiBucleRDY
 		
-		ldrb r4, [r2, r3]
+		ldrb r5, [r3, r1]
 		
-		mov r5, #64 
-		mul r4, r5, r4		@; Calculamos posicion zocalo*64 
+		mov r6, #64 
+		mul r5, r6, r5		@; Calculamos posicion zocalo*64 
 
-		mov r5, #57			@; Tabla ASCII
-		strh r5, [r0, r4]	@; Guardamos Y en fila zocalo 
+		mov r6, #57			@; Tabla ASCII
+		strh r6, [r0, r5]	@; Guardamos Y en fila zocalo 
+		bl _gm_pintarPila
 		
-		add r3, #1
+		add r1, #1
 		b .LbucleRDY 
  
 	.LfiBucleRDY: 
 		
 		@; Muestra zocalo en block   
-		ldr r1, =_gd_nDelay 
-		ldrb r1, [r1]
+		ldr r2, =_gd_nDelay 
+		ldrb r2, [r2]
 		
-		ldr r2, =_gd_qDelay 
-		mov r3, #0 		@; Contador 
+		ldr r3, =_gd_qDelay 
+		mov r1, #0 		@; Contador 
 
 	.LbucleBLK: 
-		cmp r1, r3 
+		cmp r2, r1 
 		beq .LfiBucleBLK
 		
-		mov r4, #4 
-		mul r4, r3, r4	
-		ldr r4, [r2, r4]	@; _gd_qDelay[zocalo]
+		mov r5, #4 
+		mul r5, r1, r5	
+		ldr r5, [r3, r5]	@; _gd_qDelay[zocalo]
 								
-		and r4, #0xFF000000	@; Filtramos  8 bits altos (zocalo)
-		lsr r4, #24	
+		and r5, #0xFF000000	@; Filtramos  8 bits altos (zocalo)
+		lsr r5, #24	
 		
-		mov r5, #64 
-		mul r4, r5, r4		@; Calculamos posicion zocalo*64 
+		mov r6, #64 
+		mul r5, r6, r5		@; Calculamos posicion zocalo*64 
 
-		mov r5, #34			@; Valor ASCII baldosa 
-		strh r5, [r0, r4]	@; Guardamos B en fila zocalo 
+		mov r6, #34			@; Valor ASCII baldosa 
+		strh r6, [r0, r5]	@; Guardamos B en fila zocalo 
 		
-		add r3, #1
+		add r1, #1
 		b .LbucleBLK 
 	.LfiBucleBLK: 
 	
 	pop {r0-r12, pc} 
 	
+	.global _gm_pintarPila
+	@; pinta la pila del zocalo concret (R1)
+	@;Parámetros:
+	@; R0: dirección a pintar, cal restar per ajustar columna 
+	@; R1: zocalo a analitzar i pintar 
+_gm_pintarPila: 
+	push {r0-r12, lr} 
+		sub r0, #6			@; Restem per utilitzar columna 46 
+ 
+		ldr r2, =_gd_pcbs
+		ldr r3, =_gd_stacks
+	
+		cmp r1, #0 			@; Zocalo
+		bne .LPilaProgUsuari
+	.LpilaSistema: 			@; if(zocalo == zocaloSistema) {
+		mov r5, sp			@; 		Top pila programa sistema 
+		ldr r7, =#0x0B003D00 @; 	Inici pila sistema (dtcm) 
+
+		b .LcalculaPila 
+	.LPilaProgUsuari:		@; }else{
+		mov r5, #24 
+		mla r5, r1, r5, r2 	@; 		r5 = _gd_pcbs[zocalo] 
+		ldr r5, [r5, #8]	@; 		r5 = _gd_pcbs[zocalo].SP 
+		
+		mov r6, r1 
+		sub r6, #1			@; 		r6 = zocalo-1  
+		
+		mov r7, #512 		@; 		512 bytes por pila 
+		mla r7, r6, r7, r3 	@; 		r7 = _gd_stack[zocalo-1] 
+							@; }
+	.LcalculaPila:
+		sub r7, r5, r7		@; bytesPila = _gd_pcbs[zocalo].SP - _gd_stack[zocalo-1] 
+	
+		mov r5, #119 		@; Baldosa 1 
+		mov r8, #119 		@; Baldosa 2
+	
+		cmp r7, #256 
+		bgt .LelseCalculaBaldosa 
+							@; if (bytesPila <= 256) {
+		mov r7, r7, lsr #5
+		add r5, r7			@; 		Baldosa 1 += bytesPila/32; 
+		b .LpintaBaldosa
+	.LelseCalculaBaldosa: 	@; } else {
+		mov r5, #127		@; 		Baldosa 1 = 127	(maxim)
+		mov r6, #256 
+		sub r7, r6 			
+		
+		mov r7, r7, lsr #5
+		add r8, r7 			@; 		Baldosa 2 += (bytesPila-256)/32; 
+							@; }
+	.LpintaBaldosa: 
+		mov r7, #64 
+		mla r7, r1, r7, r0 	@; Calculem posicio escriure 
+		
+		strh r5, [r7]		@; Guardem baldoses 
+		strh r8, [r7, #2] 
+ 
+	pop {r0-r12, pc} 
+
 .end 
