@@ -403,6 +403,19 @@ _gm_rsiTIMER1:
 		add r0, #256 		@; Fila 0 
 	
 		add r0, #52		@; Columna especifica letras    
+
+		@; Muestra zocalo en run
+		ldr r1, =_gd_pidz 
+		ldr r1, [r1] 
+		
+		and r1, #0xF	@; Filtramos zocalo 
+		bl _gm_pintarPila
+		
+		mov r3, #64
+		mul r2, r1, r3 	@; Calculamos posicion 
+
+		mov r3, #178 	@; Guarda R azul 
+		strh r3, [r0, r2]
 		
 		@; Muestra zocalo en ready  
 		ldr r2, =_gd_nReady 
