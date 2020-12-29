@@ -297,7 +297,7 @@ _gm_pintarFranjas:
 								@; Obtenim direccio inicial (dir_base)
 		mov r4, #0x06200000		@; Base mem. video  
 		add r4, #0x4000			@; Base contingut baldoses 
-		add r4, #0x8000			@; Base baldoses gestio mem 
+		add r4, #0x8000			@; Base baldoses gestio mem, offset 512*64 
 		
 		add r0, r4 				@; Direccio completa 
 
@@ -500,7 +500,7 @@ _gm_pintarPila:
 		sub r6, #1			@; 		r6 = zocalo-1  
 		
 		mov r7, #512 		@; 		512 bytes por pila 
-		mla r7, r6, r7, r3 	@; 		r7 = _gd_stack[zocalo-1] 
+		mla r7, r6, r7, r3 	@; 		r7 = _gd_stack[zocalo-1] = 512*zocalo-1 + _gd_stacks 
 							@; }
 	.LcalculaPila:
 		sub r7, r5, r7		@; bytesPila = _gd_pcbs[zocalo].SP - _gd_stack[zocalo-1] 

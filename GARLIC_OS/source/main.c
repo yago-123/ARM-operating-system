@@ -126,19 +126,6 @@ int leerTecla(int num_opciones)
 	return i;
 }
 
-
-/* Función para presentar una lista de opciones de tipo 'string' y escoger una */
-int escogerString(char *strings[], int num_opciones)
-{
-	int j;
-	
-	for (j = 0; j < num_opciones; j++)
-	{								// mostrar opciones
-		_gg_escribir("%c: %s\n", indicadoresTeclas[j], (unsigned int) strings[j], 0);
-	}
-	return leerTecla(num_opciones);
-}
-
 /* Función para presentar una lista de opciones de tipo 'número' y escoger una */
 int escogerNumero(const unsigned char numeros[], int num_opciones)
 {
@@ -231,9 +218,6 @@ int assertVector(unsigned char vector[], unsigned char vector2[], int longitud) 
 }
 
 int testLiberarMem() {
-	unsigned short num_ok = 0;		// number of right tests
-	unsigned short rb, rw;			// returned results
-	unsigned char success;			// boolean for assessing test success
 	unsigned char test_by_test;		// boolean for runing test by test
 	
 	_gg_escribir("********************************", 0, 0, 0);
@@ -242,16 +226,26 @@ int testLiberarMem() {
 	_gg_escribir("*                              *", 0, 0, 0);
 	_gg_escribir("********************************", 0, 0, 0);
 	_gg_escribir("Press START to run test by test,", 0, 0, 0);
-	_gg_escribir("press SELECT to run all tests.\n\n", 0, 0, 0);
+	_gg_escribir("Press SELECT to run all tests.\n\n", 0, 0, 0);
 	
-	int i, ret,  ok; 
+	do								// wait for START or SELECT
+	{	swiWaitForVBlank();
+		scanKeys();
+	} while (!(keysDown() & (KEY_START | KEY_SELECT)));
+	test_by_test = (keysDown() & KEY_START);
+	
+	if(test_by_test) _gg_escribir("Pulsa ^ para los tests unitarios\n", 0, 0, 0); 
+	
+	int i, ok = 0; 
 	unsigned char vectorSolucion[NUMERO_FRANJAS]; 
 	for(i = 0; i < (sizeof(test_liberarMem) / sizeof(test_struct_liberar)); i++) {
-		ok = 1; 
 		reestablecerVector(vectorSolucion, NUMERO_FRANJAS); 
 		reestablecerVector(_gm_zocMem, NUMERO_FRANJAS); 
 
-		_gg_escribir("Case %d: %s\n", i, test_liberarMem[i].funcion, 0);
+		_gg_escribir("Case %d: ", i, 0, 0); 
+		if(test_by_test) {
+			_gg_escribir("%s\n", (unsigned int)test_liberarMem[i].funcion, 0, 0);
+		} 
 		
 		// Escribe vector solucion sin la franjaBorrar
 		escribeFranjaAuxiliar(vectorSolucion, NUMERO_FRANJAS, test_liberarMem[i].franjaAuxiliar); 
@@ -270,7 +264,7 @@ int testLiberarMem() {
 		_gm_pintarFranjas(test_liberarMem[i].franjaAuxiliar2.zocalo, test_liberarMem[i].franjaAuxiliar2.posicionInicial, 
 					test_liberarMem[i].franjaAuxiliar2.longitud, 0); 
 		 
-		leerTecla(4); 
+		if(test_by_test) leerTecla(4); 
 
 		// Ejecuta _gm_liberarMem() 
 		_gm_liberarMem(test_liberarMem[i].franjaBorrar.zocalo);
@@ -278,21 +272,20 @@ int testLiberarMem() {
 		// Comprueba vector 
 		if(!assertVector(_gm_zocMem, vectorSolucion, NUMERO_FRANJAS)) {
 			_gg_escribir("error assert\n", 0, 0, 0); 
-			ok = 0; 
 		} else {
-			_gg_escribir("OK\n", 0, 0, 0); 
+			_gg_escribir("OK\n", 0, 0, 0);
+			ok++; 
 		}
 		
-		leerTecla(4); 
+		if(test_by_test) leerTecla(4); 
 	}
+	
+	_gg_escribir("Tests correctos: %d/%d\n", ok, i, 0); 
 
 	return 0; 
 } 
 
 int testReservarMem() {
-	unsigned short num_ok = 0;		// number of right tests
-	unsigned short rb, rw;			// returned results
-	unsigned char success;			// boolean for assessing test success
 	unsigned char test_by_test;		// boolean for runing test by test
 	
 	_gg_escribir("********************************", 0, 0, 0);
@@ -302,15 +295,27 @@ int testReservarMem() {
 	_gg_escribir("********************************", 0, 0, 0);
 	_gg_escribir("Press START to run test by test,", 0, 0, 0);
 	_gg_escribir("press SELECT to run all tests.\n\n", 0, 0, 0);
+	
+	do								// wait for START or SELECT
+	{	swiWaitForVBlank();
+		scanKeys();
+	} while (!(keysDown() & (KEY_START | KEY_SELECT)));
+	test_by_test = (keysDown() & KEY_START);
+	
+	if(test_by_test) _gg_escribir("Pulsa ^ para los tests unitarios\n", 0, 0, 0); 
 
-	int i, ret,  ok; 
+	int i, ret, status, ok = 0; 
 	unsigned char vectorSolucion[NUMERO_FRANJAS]; 
 	for(i = 0; i < (sizeof(test_reservarMem) / sizeof(test_struct_reservar)); i++) {
-		ok = 1; 
+		status = 1;
+		
 		reestablecerVector(vectorSolucion, NUMERO_FRANJAS); 
 		reestablecerVector(_gm_zocMem, NUMERO_FRANJAS); 
-
-		_gg_escribir("Case %d: %s\n", i, test_reservarMem[i].funcion, 0); 
+ 
+		_gg_escribir("Case %d: ", i, 0, 0); 
+		
+		if(test_by_test) _gg_escribir("%s\n", test_reservarMem[i].funcion, 0, 0); 
+		
 		// Escribe vector solucion con los datos completos 
 		escribeFranjaAuxiliar(vectorSolucion, NUMERO_FRANJAS, test_reservarMem[i].franjaAuxiliar); 
 		escribeFranjaAuxiliar(vectorSolucion, NUMERO_FRANJAS, test_reservarMem[i].franjaAuxiliar2); 
@@ -325,7 +330,7 @@ int testReservarMem() {
 		_gm_pintarFranjas(test_reservarMem[i].franjaAuxiliar2.zocalo, test_reservarMem[i].franjaAuxiliar2.posicionInicial, 
 				test_reservarMem[i].franjaAuxiliar2.longitud, 0); 
 
-		leerTecla(4); 
+		if(test_by_test) leerTecla(4); 
 		 
 		// Ejecuta _gm_reservarMem() y comprueba retorno 
 		ret = _gm_reservarMem(test_reservarMem[i].zocalo, test_reservarMem[i].numBytes, 0);
@@ -333,83 +338,98 @@ int testReservarMem() {
 		// Comprueba retorno 
 		if(ret != test_reservarMem[i].direccionRetorno) {
 			_gg_escribir("error retorno\n", 0, 0, 0); 
-			ok = 0;  
+			status = 0;  
 		} 
 		
 		// Comprueba vector 
 		if(!assertVector(_gm_zocMem, vectorSolucion, NUMERO_FRANJAS)) {
 			_gg_escribir("error assert\n", 0, 0, 0); 
-			ok = 0;  
+			status = 0;  
 		}
 		
-		if(ok) {
+		if(status) {
 			_gg_escribir("OK\n", 0, 0, 0); 
+			ok++; 
 		} 
 		
-		leerTecla(4); 
+		if(test_by_test) leerTecla(4); 
 	}
+
+	reestablecerVector(vectorSolucion, NUMERO_FRANJAS); 
+	reestablecerVector(_gm_zocMem, NUMERO_FRANJAS); 
+	
+	_gg_escribir("Tests correctos: %d/%d\n", ok, i, 0);
+
+ 
 		
 	return 0; 
 } 
 
-int testReady() {
+
+
+int testPila() {
+	_gg_escribir("********************************", 0, 0, 0);
+	_gg_escribir("*                              *", 0, 0, 0);
+	_gg_escribir("*   Test of _gm_pintarPila()   *", 0, 0, 0);
+	_gg_escribir("*                              *", 0, 0, 0);
+	_gg_escribir("********************************", 0, 0, 0);
+
+	_gg_escribir("Pulsa ^ para aumentar la pila\n", 0, 0, 0); 
+
+	int i, j; 	
+	for(i = 0; i < 9; i++) {
+		for(j = 1; j < 4; j++) {
+			_gd_pcbs[j].SP = (int) &_gd_stacks[128*(j-1)]+(64*i); 
+			_gm_pintarPila(0x6200134, j);
+		}
+		
+		leerTecla(4); 
+	}
 	
 	return 0; 
 }
 
-int testBlock() {
+int testCuaBLK() {
+	_gg_escribir("********************************", 0, 0, 0);
+	_gg_escribir("*                              *", 0, 0, 0);
+	_gg_escribir("*     Test of  BLK queue       *", 0, 0, 0);
+	_gg_escribir("*                              *", 0, 0, 0);
+	_gg_escribir("********************************", 0, 0, 0);
 
+	
+	_gg_escribir("Encua tots procesos a BLK\n", 0, 0, 0); 
+	_gd_qDelay[0] = 0x0000000; 
+	_gd_qDelay[1] = 0x1000000; 
+	_gd_qDelay[2] = 0x2000000;
+	_gd_qDelay[3] = 0x3000000; 
+	
+	_gd_nDelay = 4; 
+	leerTecla(4); 
 	return 0; 
 }
-
-int testPila() {
-
-	return 0; 
-}
-
 //------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //------------------------------------------------------------------------------
-	intFunc start;
-	char *progs[8];
-	unsigned char zocalosDisponibles[3];
-	int num_progs, ind_prog, zocalo;
-	int i, j;
 
 	inicializarSistema();
 	
-	_gg_escribir("********************************", 0, 0, 0);
-	_gg_escribir("*                              *", 0, 0, 0);
-	_gg_escribir("* Sistema Operativo GARLIC 2.0 *", 0, 0, 0);
-	_gg_escribir("*                              *", 0, 0, 0);
-	_gg_escribir("********************************", 0, 0, 0);
-	_gg_escribir("*** Inicio fase 2_M\n", 0, 0, 0);
-	
-	num_progs = _gm_listaProgs(progs);
-	if (num_progs == 0)
-		_gg_escribir("ERROR: |NO hay programas disponibles!\n", 0, 0, 0);
-	else
-	{	
-			_gp_WaitForVBlank();
-			gestionSincronismos();
-			if ((_gd_pcbs[1].PID == 0) || (_gd_pcbs[2].PID == 0)
-													|| (_gd_pcbs[3].PID == 0))
-			{
-				// Liberar mem tests 
-				testLiberarMem(); 
+	_gp_WaitForVBlank();
+	gestionSincronismos();
+	if ((_gd_pcbs[1].PID == 0) || (_gd_pcbs[2].PID == 0)
+											|| (_gd_pcbs[3].PID == 0))
+	{
+		// Liberar mem tests 
+		testLiberarMem(); 
+			
+		// Reservar mem tests 
+		testReservarMem(); 
 				
-				// Reservar mem tests 
-				testReservarMem(); 
+		// Testeja franjes pila 
+		testPila(); 
 				
-				// Posar estat ready diferents procesos  
-				testReady(); 
-				
-				// Posar estat block diferents procesos 
-				testBlock(); 
-				
-				// Pintar pila amb diferents nivells  
-				testPila(); 
-			}
+		// Procesos a blk 
+		testCuaBLK();	
+			
 	}
 	return 0;
 }
