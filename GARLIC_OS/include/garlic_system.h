@@ -166,6 +166,11 @@ extern void _gp_rsiTIMER0();
 //	Funciones de gestión de memoria (garlic_mem.c)
 //------------------------------------------------------------------------------
 
+/* _gm_zocMem: vector que almacenará el índice del zócalo que está
+ocupando cada franja de memoria de 32 bytes */
+extern unsigned char _gm_zocMem[768];
+
+
 /* _gm_initFS: inicializa el sistema de ficheros, devolviendo un valor booleano
 					para indiciar si dicha inicialización ha tenido éxito;
 */
