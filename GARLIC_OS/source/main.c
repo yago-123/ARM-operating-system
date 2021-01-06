@@ -314,7 +314,7 @@ int testReservarMem() {
  
 		_gg_escribir("Case %d: ", i, 0, 0); 
 		
-		if(test_by_test) _gg_escribir("%s\n", test_reservarMem[i].funcion, 0, 0); 
+		if(test_by_test) _gg_escribir("%s\n", (int)test_reservarMem[i].funcion, 0, 0); 
 		
 		// Escribe vector solucion con los datos completos 
 		escribeFranjaAuxiliar(vectorSolucion, NUMERO_FRANJAS, test_reservarMem[i].franjaAuxiliar); 
@@ -333,7 +333,7 @@ int testReservarMem() {
 		if(test_by_test) leerTecla(4); 
 		 
 		// Ejecuta _gm_reservarMem() y comprueba retorno 
-		ret = _gm_reservarMem(test_reservarMem[i].zocalo, test_reservarMem[i].numBytes, 0);
+		ret = (int)_gm_reservarMem(test_reservarMem[i].zocalo, test_reservarMem[i].numBytes, 0);
 
 		// Comprueba retorno 
 		if(ret != test_reservarMem[i].direccionRetorno) {
